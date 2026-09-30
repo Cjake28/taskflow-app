@@ -6,6 +6,7 @@ import { AccessTokenService } from './common/utils/tokens';
 import { loadEnv, type Env } from './config/env';
 import { createPrismaClient, type Db } from './database/prisma';
 import { SessionsService } from './modules/auth/sessions.service';
+import { UsersService } from './modules/users/users.service';
 import { createRedis } from './redis/redis';
 
 export interface ContainerOverrides {
@@ -23,6 +24,7 @@ export interface Container {
   limiters: RateLimiters;
   accessTokens: AccessTokenService;
   sessions: SessionsService;
+  users: UsersService;
   close(): Promise<void>;
 }
 
@@ -45,6 +47,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     refreshTtlDays: env.REFRESH_TOKEN_TTL_DAYS,
     rememberTtlDays: env.REFRESH_TOKEN_REMEMBER_TTL_DAYS,
   });
+  const users = new UsersService(prisma);
 
   return {
     env,
@@ -55,6 +58,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     limiters,
     accessTokens,
     sessions,
+    users,
     async close() {
       await Promise.allSettled([prisma.$disconnect(), redis.quit()]);
     },
