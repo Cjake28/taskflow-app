@@ -46,6 +46,13 @@ const envSchema = z.object({
   USER_STORAGE_QUOTA_MB: z.coerce.number().positive().default(100),
   IMAGE_RETENTION_DAYS: z.coerce.number().int().min(0).default(7),
   ORPHAN_GRACE_HOURS: z.coerce.number().positive().default(24),
+
+  /** Public base of the OAuth callbacks; defaults to `<FRONTEND_URL>/api/v1/auth/oauth`. */
+  OAUTH_REDIRECT_BASE_URL: optionalString,
+  GOOGLE_CLIENT_ID: optionalString,
+  GOOGLE_CLIENT_SECRET: optionalString,
+  GITHUB_CLIENT_ID: optionalString,
+  GITHUB_CLIENT_SECRET: optionalString,
 });
 
 /** Variables each storage driver needs; checked at startup so a bad setup fails fast. */
@@ -64,6 +71,9 @@ const refinedSchema = envSchema.superRefine((env, ctx) => {
         message: `is required when STORAGE_DRIVER=${env.STORAGE_DRIVER}`,
       });
     }
+  }
+  if (env.OAUTH_REDIRECT_BASE_URL && !URL.canParse(env.OAUTH_REDIRECT_BASE_URL)) {
+    ctx.addIssue({ code: 'custom', path: ['OAUTH_REDIRECT_BASE_URL'], message: 'must be a URL' });
   }
   if (env.S3_ENDPOINT && !URL.canParse(env.S3_ENDPOINT)) {
     ctx.addIssue({ code: 'custom', path: ['S3_ENDPOINT'], message: 'must be a URL' });

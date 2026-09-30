@@ -1,5 +1,6 @@
 export * from './constants/error-codes';
 export * from './constants/image';
+export * from './constants/oauth';
 export * from './constants/task';
 export * from './rules/fields';
 export * from './rules/password-policy';
@@ -9,6 +10,8 @@ export * from './schemas/auth';
 export * from './schemas/user';
 export * from './schemas/task';
 export * from './schemas/image';
+export * from './schemas/oauth';
 export * from './types/api';
 export * from './types/user';
 export * from './types/task';
+export * from './types/oauth';

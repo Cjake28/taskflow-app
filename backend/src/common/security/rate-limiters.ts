@@ -17,6 +17,7 @@ export const LIMITS = {
   forgotEmail: { keyPrefix: 'forgot-email', points: 3, durationSec: 60 * 60, scaled: false },
   resetIp: { keyPrefix: 'reset-ip', points: 10, durationSec: 15 * 60 },
   refreshIp: { keyPrefix: 'refresh-ip', points: 30, durationSec: 60 },
+  oauthIp: { keyPrefix: 'oauth-ip', points: 30, durationSec: 15 * 60 },
   upload: { keyPrefix: 'upload-user', points: 30, durationSec: 15 * 60 },
   imageRead: { keyPrefix: 'image-read-user', points: 600, durationSec: 60 },
   api: { keyPrefix: 'api', points: 300, durationSec: 15 * 60 },
