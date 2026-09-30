@@ -14,7 +14,7 @@ export const LIMITS = {
   loginIp: { keyPrefix: 'login-ip', points: 50, durationSec: 15 * 60 },
   register: { keyPrefix: 'register-ip', points: 5, durationSec: 60 * 60 },
   forgotIp: { keyPrefix: 'forgot-ip', points: 5, durationSec: 15 * 60 },
-  forgotEmail: { keyPrefix: 'forgot-email', points: 3, durationSec: 60 * 60 },
+  forgotEmail: { keyPrefix: 'forgot-email', points: 3, durationSec: 60 * 60, scaled: false },
   resetIp: { keyPrefix: 'reset-ip', points: 10, durationSec: 15 * 60 },
   refreshIp: { keyPrefix: 'refresh-ip', points: 30, durationSec: 60 },
   upload: { keyPrefix: 'upload-user', points: 30, durationSec: 15 * 60 },

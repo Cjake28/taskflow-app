@@ -3,18 +3,17 @@ import { authenticate } from '../../common/middleware/authenticate';
 import type { Container } from '../../container';
 import { AuthController } from './auth.controller';
 import { createAuthRouter } from './auth.routes';
+import { PasswordResetController } from './password-reset.controller';
 
 export function authModule(c: Container): Router {
-  const controller = new AuthController(
-    c.auth,
-    c.sessions,
-    c.accessTokens,
-    c.users,
-    c.env,
-    c.clock,
+  const auth = new AuthController(c.auth, c.sessions, c.accessTokens, c.users, c.env, c.clock);
+  const passwordReset = new PasswordResetController(
+    c.passwordReset,
+    c.limiters.forgotEmail,
+    c.logger,
   );
-  return createAuthRouter(controller, {
-    limiters: c.limiters,
-    authenticate: authenticate(c.accessTokens, c.sessions),
-  });
+  return createAuthRouter(
+    { auth, passwordReset },
+    { limiters: c.limiters, authenticate: authenticate(c.accessTokens, c.sessions) },
+  );
 }

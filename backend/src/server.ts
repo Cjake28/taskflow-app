@@ -5,6 +5,8 @@ import { createContainer } from './container';
 const container = await createContainer();
 const app = createApp(container);
 
+if (container.env.RUN_WORKER_IN_API) await container.startWorkers();
+
 const server = app.listen(container.env.PORT, () => {
   container.logger.info(`API listening on http://localhost:${container.env.PORT}`);
 });

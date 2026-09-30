@@ -17,6 +17,16 @@ const envSchema = z.object({
   COOKIE_SECURE: booleanString.default(false),
   HIBP_ENABLED: booleanString.default(true),
   RATE_LIMIT_SCALE: z.coerce.number().positive().default(1),
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
+
+  RUN_WORKER_IN_API: booleanString.default(true),
+
+  SMTP_HOST: z.string().min(1).default('localhost'),
+  SMTP_PORT: z.coerce.number().int().positive().default(1025),
+  SMTP_SECURE: booleanString.default(false),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+  MAIL_FROM: z.string().min(3).default('TaskFlow <no-reply@taskflow.local>'),
 });
 
 export type Env = z.infer<typeof envSchema>;

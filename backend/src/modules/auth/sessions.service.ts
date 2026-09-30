@@ -199,7 +199,7 @@ export class SessionsService {
       where: { id: sessionId, revokedAt: null },
       data: { revokedAt: this.clock.now() },
     });
-    await this.forget([sessionId]);
+    await this.clearCache([sessionId]);
   }
 
   async revokeAllForUser(
@@ -220,10 +220,11 @@ export class SessionsService {
       where: { id: { in: ids } },
       data: { revokedAt: this.clock.now() },
     });
-    await this.forget(ids);
+    await this.clearCache(ids);
   }
 
-  private async forget(sessionIds: string[]): Promise<void> {
+  async clearCache(sessionIds: string[]): Promise<void> {
+    if (sessionIds.length === 0) return;
     try {
       await this.redis.del(...sessionIds.map(sessionCacheKey));
     } catch (err) {
