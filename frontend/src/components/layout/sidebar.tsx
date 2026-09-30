@@ -5,6 +5,7 @@ import { Link, NavLink } from 'react-router';
 import { Avatar } from '@/components/common/avatar';
 import { Logo } from '@/components/common/logo';
 import { useCurrentUser, useAuth } from '@/features/auth/use-auth';
+import { useOpenTaskCount } from '@/features/dashboard/hooks';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -27,6 +28,8 @@ export function Sidebar({ className }: { className?: string }) {
   const user = useCurrentUser();
   const { logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  // Same query as the dashboard stats, so the count updates whenever task data is invalidated.
+  const openCount = useOpenTaskCount();
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -58,8 +61,23 @@ export function Sidebar({ className }: { className?: string }) {
               )
             }
           >
-            <Icon aria-hidden="true" />
-            {label}
+            {({ isActive }) => (
+              <>
+                <Icon aria-hidden="true" />
+                {label}
+                {to === '/tasks' && openCount ? (
+                  <span
+                    className={cn(
+                      'ml-auto min-w-6 rounded-full px-2 py-0.5 text-center text-xs font-bold tabular-nums',
+                      isActive ? 'bg-card text-primary' : 'bg-fill text-muted-foreground',
+                    )}
+                  >
+                    {openCount}
+                    <span className="sr-only"> open</span>
+                  </span>
+                ) : null}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
