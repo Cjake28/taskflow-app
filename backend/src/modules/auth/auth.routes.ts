@@ -22,5 +22,8 @@ export function createAuthRouter(
     validate({ body: loginSchema }),
     controller.login,
   );
+  router.post('/refresh', rateLimit(deps.limiters.refreshIp), controller.refresh);
+  router.post('/logout', controller.logout);
+  router.post('/logout-all', deps.authenticate, controller.logoutAll);
   return router;
 }
