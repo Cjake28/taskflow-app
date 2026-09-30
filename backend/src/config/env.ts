@@ -21,6 +21,8 @@ const envSchema = z.object({
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
 
   RUN_WORKER_IN_API: booleanString.default(true),
+  /** Swagger UI at /api/docs. */
+  API_DOCS_ENABLED: booleanString.default(true),
 
   SMTP_HOST: z.string().min(1).default('localhost'),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
