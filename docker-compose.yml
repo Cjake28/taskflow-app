@@ -1,0 +1,77 @@
+name: taskflow
+
+# Host ports can be overridden in a root .env file (e.g. TASKFLOW_REDIS_PORT=6380)
+# when the defaults are already used on your machine.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: taskflow
+      POSTGRES_PASSWORD: taskflow
+      POSTGRES_DB: taskflow
+    ports:
+      - '127.0.0.1:${TASKFLOW_POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U taskflow -d taskflow']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    command: ['redis-server', '--requirepass', 'taskflow', '--appendonly', 'yes']
+    ports:
+      - '127.0.0.1:${TASKFLOW_REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', 'taskflow', '--no-auth-warning', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '127.0.0.1:${TASKFLOW_SMTP_PORT:-1025}:1025'
+      - '127.0.0.1:${TASKFLOW_MAILPIT_UI_PORT:-8025}:8025'
+
+  # Optional S3-compatible storage for testing STORAGE_DRIVER=s3:
+  #   docker compose --profile s3 up -d
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    profiles: ['s3']
+    command:
+      - server
+      - -dir=/data
+      - -ip.bind=0.0.0.0
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/s3.json
+    ports:
+      - '127.0.0.1:${TASKFLOW_S3_PORT:-8333}:8333'
+    volumes:
+      - seaweedfs-data:/data
+      - ./docker/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
+  seaweedfs-init:
+    image: chrislusf/seaweedfs:latest
+    profiles: ['s3']
+    depends_on:
+      - seaweedfs
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        for i in $$(seq 1 30); do
+        echo 's3.bucket.create -name taskflow' | weed shell -master=seaweedfs:9333 && exit 0;
+        sleep 2; done; exit 1
+
+volumes:
+  postgres-data:
+  redis-data:
+  seaweedfs-data:
