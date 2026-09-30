@@ -6,6 +6,7 @@ export const QUEUE_NAMES: readonly QueueName[] = ['email', 'media', 'maintenance
 export interface JobPayloads {
   'email.password-reset-request': { email: string };
   'email.password-changed': { userId: string };
+  'email.verify-email': { userId: string };
   'avatar.import': { userId: string; url: string };
   'storage.delete': { keys: string[] };
   'images.purge': Record<string, never>;
@@ -18,6 +19,7 @@ export type JobName = keyof JobPayloads;
 export const JOB_QUEUES: Record<JobName, QueueName> = {
   'email.password-reset-request': 'email',
   'email.password-changed': 'email',
+  'email.verify-email': 'email',
   'avatar.import': 'media',
   'storage.delete': 'media',
   'images.purge': 'maintenance',

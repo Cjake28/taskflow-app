@@ -10,7 +10,7 @@ import { RouteError } from './route-error';
 /*
  * Routes (spec §14.3). Pages are lazy-loaded; guards and layouts stay in the main chunk.
  *   public-only  /login /register /forgot-password
- *   neutral      /reset-password  (an emailed link must work even if this browser has a session)
+ *   neutral      /reset-password, /verify-email  (emailed links must work with or without a session)
  *   protected    / → /dashboard, /dashboard, /tasks, /tasks/:id, /profile
  */
 export const router = createBrowserRouter([
@@ -48,6 +48,13 @@ export const router = createBrowserRouter([
         lazy: {
           Component: async () =>
             (await import('@/features/auth/pages/reset-password-page')).ResetPasswordPage,
+        },
+      },
+      {
+        path: 'verify-email',
+        lazy: {
+          Component: async () =>
+            (await import('@/features/auth/pages/verify-email-page')).VerifyEmailPage,
         },
       },
       {

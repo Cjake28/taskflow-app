@@ -10,6 +10,7 @@ import { hashPassword, verifyAgainstDummyHash, verifyPassword } from '../../comm
 import { isUniqueViolation, type Db } from '../../database/prisma';
 import { assertEmailAndUsernameAvailable } from '../users/user-uniqueness';
 import type { UserRecord } from '../users/users.mapper';
+import type { EmailVerificationService } from './email-verification.service';
 import type { IssuedSession, SessionsService } from './sessions.service';
 
 export const INVALID_CREDENTIALS_MESSAGE = 'Invalid email/username or password.';
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly sessions: SessionsService,
     private readonly breachChecker: PasswordBreachChecker,
     private readonly loginThrottle: LoginThrottle,
+    private readonly emailVerification: EmailVerificationService,
   ) {}
 
   async register(input: RegisterData, meta: SessionMeta): Promise<AuthResult> {
@@ -57,6 +59,7 @@ export class AuthService {
       });
 
     const session = await this.sessions.create(user.id, { persistent: false, ...meta });
+    await this.emailVerification.requestVerification(user.id);
     return { user, session };
   }
 
