@@ -49,7 +49,11 @@ export async function createHarness(
     async reset() {
       await truncateAll(container.prisma);
       await container.redis.flushdb();
+      const keys: string[] = [];
+      for await (const object of container.storage.list('images/')) keys.push(object.key);
+      await container.storage.delete(keys);
       mail.clear();
+      clock.reset();
     },
     close: () => container.close(),
   };

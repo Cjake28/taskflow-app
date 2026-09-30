@@ -141,7 +141,7 @@ Bonus work starts only after all core requirements are working.
 | `pino`, `pino-http` | Structured logging with request IDs and field redaction |
 | `sharp` **0.35.x** | Image decoding, validation, auto-orientation, resizing and WebP encoding (prebuilt binaries, including Windows x64) |
 | `multer` **2.x** | Multipart parsing with strict size/count limits (memory storage) |
-| `@aws-sdk/client-s3` **3.x** | S3-compatible storage driver (AWS S3, Cloudflare R2, MinIO) |
+| `@aws-sdk/client-s3` **3.x** | S3-compatible storage driver (AWS S3, Cloudflare R2, SeaweedFS, MinIO) |
 | `arctic` 3.x | Minimal OAuth 2.0 client (PKCE, state helpers); sessions stay ours |
 | `bowser` | Friendly device names for the Active Sessions list ("Chrome on Windows") — MIT licensed (avoids `ua-parser-js` v2, which is AGPL) |
 | `@asteasolutions/zod-to-openapi` + `swagger-ui-express` | Bonus API docs generated from the same Zod schemas (verify Zod 4 support; fall back to Zod 4's native `z.toJSONSchema()`) |
@@ -185,7 +185,7 @@ Bonus work starts only after all core requirements are working.
 | Prisma 7: `prisma-client` generator requires `output`; datasource URL moved to `prisma.config.ts`; driver adapter required | Old setup guides fail | Follow the Prisma 7 layout (§5.1) |
 | Zod 4 API differs from v3 (`z.email()`, `z.strictObject()`) | v3 snippets break | Use Zod 4 syntax throughout |
 | BullMQ polls Redis continuously | Exhausts Upstash free-tier command quotas | Use a real Redis instance (local Docker; Railway/Render Key Value when deployed) |
-| AWS SDK v3 (≥ 3.729) sends new default checksum headers | Some S3-compatible providers reject requests | For custom endpoints (R2, MinIO) set `requestChecksumCalculation` and `responseChecksumValidation` to `WHEN_REQUIRED` |
+| AWS SDK v3 (≥ 3.729) sends new default checksum headers | Some S3-compatible providers reject requests | For custom endpoints (R2, SeaweedFS, MinIO) set `requestChecksumCalculation` and `responseChecksumValidation` to `WHEN_REQUIRED` |
 | Git on Windows with `core.autocrlf=true` | CRLF line endings break shell scripts and container entrypoints | Commit a `.gitattributes` with `* text=auto eol=lf` first |
 
 ---
@@ -202,7 +202,7 @@ taskflow/
 ├── .prettierrc
 ├── .gitattributes                # * text=auto eol=lf
 ├── .gitignore
-├── docker-compose.yml            # postgres + redis + mailpit (+ minio under the "s3" profile)
+├── docker-compose.yml            # postgres + redis + mailpit (+ SeaweedFS under the "s3" profile)
 ├── .github/workflows/ci.yml      # lint, typecheck, test, audit (bonus)
 ├── README.md
 ├── docs/
@@ -290,7 +290,7 @@ backend/
 │   ├── storage/
 │   │   ├── storage-driver.ts     # interface
 │   │   ├── local-disk.driver.ts
-│   │   ├── s3.driver.ts          # AWS S3, MinIO; R2 via preset
+│   │   ├── s3.driver.ts          # AWS S3, SeaweedFS/MinIO; R2 via preset
 │   │   └── storage.factory.ts    # picks the driver from env
 │   ├── jobs/
 │   │   ├── job-queue.ts          # JobQueue interface + BullMQ implementation
@@ -747,7 +747,7 @@ User response shape: `{ id, firstName, lastName, username, email, avatarUrl, has
 | PATCH | `/tasks/:id` | any subset of the create fields; `null` clears optional fields | `200` task | 400, 404 |
 | PATCH | `/tasks/:id/move` | status, prevId?, nextId? | `200` task | 400, 404 |
 | DELETE | `/tasks/:id` | — | `204` (its images are soft-deleted) | 404 |
-| GET | `/tasks/:id/activities` | — | `200` list | 404 |
+| GET | `/tasks/:id/activities` | — | `200` list (newest first) | 404 |
 | POST | `/tasks/:id/images` | multipart field `images` (1–5 files) | `201` `ImageDto[]` | 400, 404, 413, 415 |
 | DELETE | `/tasks/:id/images/:imageId` | — | `204` (soft delete) | 404 |
 | POST | `/tasks/:id/images/:imageId/restore` | — | `200` `ImageDto` (within the retention window) | 400 `TOO_MANY_IMAGES`, 404 |
@@ -1111,13 +1111,13 @@ interface StorageDriver {
 | `STORAGE_DRIVER` | Implementation | Configuration |
 |---|---|---|
 | `local` (default) | `LocalDiskDriver` — files under `STORAGE_LOCAL_ROOT` (outside any static web root; gitignored) | `STORAGE_LOCAL_ROOT` |
-| `s3` | `S3Driver` — AWS S3 or any S3-compatible service (MinIO) | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT` (empty for AWS), `S3_FORCE_PATH_STYLE`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
+| `s3` | `S3Driver` — AWS S3 or any S3-compatible service (SeaweedFS, MinIO) | `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT` (empty for AWS), `S3_FORCE_PATH_STYLE`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` |
 | `r2` | `S3Driver` with the Cloudflare R2 preset: endpoint `https://<account>.r2.cloudflarestorage.com`, region `auto`, checksum compatibility settings | `R2_ACCOUNT_ID`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` |
 
 - `env.ts` validates driver-specific variables with a discriminated union — a misconfigured driver stops the server at startup rather than failing on the first upload.
 - Buckets are **private** (no public access policy, no public URLs). S3 (SSE-S3) and R2 encrypt objects at rest by default.
 - `healthCheck()` (write/read probe for local, `HeadBucket` for S3/R2) is part of `GET /health`.
-- For local S3 testing, `docker compose --profile s3 up` starts **MinIO** and creates a private `taskflow` bucket (§18.2).
+- For local S3 testing, `docker compose --profile s3 up` starts **SeaweedFS** (S3 API on port 8333) and creates a private `taskflow` bucket. MinIO was the original choice, but its Docker images are no longer published, so SeaweedFS replaced it (§18.2).
 
 ### 10.6 Serving images
 
@@ -1625,7 +1625,7 @@ Ownership, uniqueness, token lifecycles and file handling live in database and s
 6. **Dashboard** — counts per status, overdue, due soon, completion rate.
 7. **Rate limiting** — sixth failed login → 429 with `Retry-After`.
 
-**Storage driver contract tests** — one shared suite (put, getStream, delete, exists, list) runs against the local driver always, and against MinIO when `S3_TEST_ENDPOINT` is set (CI runs a MinIO service).
+**Storage driver contract tests** — one shared suite (put, getStream, delete, exists, list) runs against the local driver always, and against SeaweedFS when `S3_TEST_ENDPOINT` is set. `TEST_STORAGE_DRIVER=s3` also runs the whole images API suite against it.
 
 **Unit tests:** password policy, token helpers, position midpoint/renumbering, image processor presets, mappers.
 
@@ -1642,7 +1642,7 @@ End-to-end browser tests (Playwright) — listed as a future improvement.
 
 ### 17.4 CI (bonus)
 
-GitHub Actions with PostgreSQL, Redis and MinIO services: install → migrate → lint → typecheck → test → `npm audit --audit-level=high`.
+GitHub Actions with PostgreSQL and Redis services: install → migrate → lint → typecheck → test → `npm audit --audit-level=high`.
 
 ---
 
@@ -1659,12 +1659,12 @@ Node.js 24, npm 11, Docker Desktop. No cloud accounts are required.
 | `postgres` | `postgres:17-alpine` | 5432 | Creates `taskflow` and `taskflow_test`; named volume; healthcheck |
 | `redis` | `redis:8-alpine` | 6379 | `requirepass`; healthcheck |
 | `mailpit` | `axllent/mailpit` (version pinned at setup) | 1025 (SMTP), 8025 (web inbox) | Catches all email |
-| `minio` *(profile `s3`)* | `minio/minio` (version pinned at setup) | 9000 (S3 API), 9001 (console) | Optional; for testing `STORAGE_DRIVER=s3` |
-| `minio-init` *(profile `s3`)* | `minio/mc` | — | Creates the private `taskflow` bucket, then exits |
+| `seaweedfs` *(profile `s3`)* | `chrislusf/seaweedfs` | 8333 (S3 API) | Optional; for testing `STORAGE_DRIVER=s3` |
+| `seaweedfs-init` *(profile `s3`)* | `chrislusf/seaweedfs` | — | Creates the private `taskflow` bucket, then exits |
 
 ```bash
 docker compose up -d                  # postgres + redis + mailpit
-docker compose --profile s3 up -d     # + minio (+ bucket bootstrap)
+docker compose --profile s3 up -d     # + SeaweedFS (+ bucket bootstrap)
 ```
 
 Ports are bound to `127.0.0.1` because Docker's default `0.0.0.0` binding bypasses the host firewall and exposes the services to the local network.
@@ -1676,7 +1676,7 @@ Ports are bound to `127.0.0.1` because Docker's default `0.0.0.0` binding bypass
 | Frontend (Vite) | `http://localhost:5173` |
 | Backend (Express) | `http://localhost:4000` (reached through the Vite proxy) |
 | Mailpit inbox | `http://localhost:8025` |
-| MinIO console (optional) | `http://localhost:9001` |
+| SeaweedFS S3 API (optional) | `http://localhost:8333` |
 | API docs (bonus) | `http://localhost:5173/api/docs` |
 
 ### 18.4 Environment variables (`backend/.env.example`)
@@ -1717,7 +1717,7 @@ HIBP_ENABLED=true
 STORAGE_DRIVER=local
 STORAGE_LOCAL_ROOT=./storage
 
-# STORAGE_DRIVER=s3 (AWS S3 or MinIO)
+# STORAGE_DRIVER=s3 (AWS S3, SeaweedFS or MinIO)
 S3_BUCKET=
 S3_REGION=
 S3_ENDPOINT=
@@ -1749,7 +1749,7 @@ The frontend needs no environment variables (it calls the relative `/api/v1`).
 
 ### 18.5 README must cover
 
-Project overview · technologies · prerequisites · installation · environment variables · database setup · Prisma migrations · running backend and frontend · **testing forgot/reset password with Mailpit** · demo credentials · running tests · **storage drivers (local, MinIO, AWS S3, Cloudflare R2)** · background jobs and the worker · optional OAuth setup (Google Cloud Console, GitHub OAuth App) · architecture summary · challenges encountered · what I would improve.
+Project overview · technologies · prerequisites · installation · environment variables · database setup · Prisma migrations · running backend and frontend · **testing forgot/reset password with Mailpit** · demo credentials · running tests · **storage drivers (local, SeaweedFS, AWS S3, Cloudflare R2)** · background jobs and the worker · optional OAuth setup (Google Cloud Console, GitHub OAuth App) · architecture summary · challenges encountered · what I would improve.
 
 ---
 

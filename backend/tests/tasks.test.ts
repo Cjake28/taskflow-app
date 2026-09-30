@@ -103,7 +103,7 @@ describe('ownership', () => {
       h.patch(url).set('Cookie', intruder.cookie).send({ title: 'Hacked' }),
       h.patch(`${url}/move`).set('Cookie', intruder.cookie).send({ status: 'COMPLETED' }),
       h.del(url).set('Cookie', intruder.cookie),
-      h.get(`${url}/activity`).set('Cookie', intruder.cookie),
+      h.get(`${url}/activities`).set('Cookie', intruder.cookie),
     ]);
     for (const res of responses) {
       expect(res.status).toBe(404);
@@ -136,7 +136,7 @@ describe('PATCH /api/v1/tasks/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({ title: 'Final', priority: 'HIGH', description: 'Notes' });
 
-    const activity = await h.get(`/api/v1/tasks/${task.id}/activity`).set('Cookie', cookie);
+    const activity = await h.get(`/api/v1/tasks/${task.id}/activities`).set('Cookie', cookie);
     expect(activity.body.data[0]).toMatchObject({
       action: 'UPDATED',
       taskTitle: 'Final',
@@ -159,7 +159,7 @@ describe('PATCH /api/v1/tasks/:id', () => {
     const reopened = await h.patch(url).set('Cookie', cookie).send({ status: 'IN_PROGRESS' });
     expect(reopened.body.data.completedAt).toBeNull();
 
-    const activity = await h.get(`${url}/activity`).set('Cookie', cookie);
+    const activity = await h.get(`${url}/activities`).set('Cookie', cookie);
     expect(activity.body.data.map((a: { action: string }) => a.action)).toEqual([
       'STATUS_CHANGED',
       'STATUS_CHANGED',
@@ -404,7 +404,7 @@ describe('PATCH /api/v1/tasks/:id/move', () => {
     expect(res.body.data.completedAt).not.toBeNull();
     expect(await column(cookie, 'COMPLETED')).toEqual(['Done A', 'Card']);
 
-    const activity = await h.get(`/api/v1/tasks/${task.id}/activity`).set('Cookie', cookie);
+    const activity = await h.get(`/api/v1/tasks/${task.id}/activities`).set('Cookie', cookie);
     expect(activity.body.data[0]).toMatchObject({
       action: 'STATUS_CHANGED',
       changes: { status: { from: 'TODO', to: 'COMPLETED' } },
