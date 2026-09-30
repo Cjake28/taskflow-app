@@ -24,8 +24,12 @@ import { AuthService } from './modules/auth/auth.service';
 import { PasswordResetService } from './modules/auth/password-reset.service';
 import { SessionsService } from './modules/auth/sessions.service';
 import { DashboardService } from './modules/dashboard/dashboard.service';
+import { AvatarImportService } from './modules/images/avatar-import.service';
 import { ImageProcessor } from './modules/images/image-processor';
 import { ImagesService } from './modules/images/images.service';
+import { OAuthService } from './modules/oauth/oauth.service';
+import type { OAuthProvider } from './modules/oauth/providers/oauth-provider';
+import { createOAuthProviders } from './modules/oauth/providers/provider-registry';
 import { TasksService } from './modules/tasks/tasks.service';
 import { UsersService } from './modules/users/users.service';
 import { createRedis } from './redis/redis';
@@ -39,6 +43,9 @@ export interface ContainerOverrides {
   breachChecker?: PasswordBreachChecker;
   mailTransport?: MailTransport;
   storage?: StorageDriver;
+  oauthProviders?: OAuthProvider[];
+  /** Used to download OAuth profile pictures. */
+  fetch?: typeof fetch;
   /** `inline` runs jobs synchronously (tests); `bullmq` uses Redis-backed queues (default). */
   jobs?: 'inline' | 'bullmq';
 }
@@ -65,6 +72,8 @@ export interface Container {
   storage: StorageDriver;
   images: ImagesService;
   dashboard: DashboardService;
+  avatarImport: AvatarImportService;
+  oauth: OAuthService;
   processors: JobProcessors;
   /** Starts BullMQ workers and cron schedules in this process. */
   startWorkers(): Promise<void>;
@@ -154,6 +163,16 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
   });
 
   const dashboard = new DashboardService(prisma, clock);
+  const avatarImport = new AvatarImportService(prisma, images, logger, overrides.fetch);
+  const oauth = new OAuthService(
+    prisma,
+    redis,
+    overrides.oauthProviders ?? createOAuthProviders(env),
+    sessions,
+    jobs,
+    clock,
+    logger,
+  );
 
   const processors = createJobProcessors({
     logger,
@@ -162,6 +181,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     authCleanup,
     storage,
     images,
+    avatarImport,
   });
   if (jobs instanceof InlineJobQueue) jobs.setProcessors(processors);
 
@@ -189,6 +209,8 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     storage,
     images,
     dashboard,
+    avatarImport,
+    oauth,
     processors,
     async startWorkers() {
       if (!bullConnection || !(jobs instanceof BullJobQueue) || workers) return;

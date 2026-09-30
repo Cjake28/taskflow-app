@@ -2,6 +2,7 @@ import type { Logger } from '../common/utils/logger';
 import type { AccountEmailsService } from '../mail/account-emails.service';
 import type { AuthCleanupService } from '../modules/auth/auth-cleanup.service';
 import type { PasswordResetService } from '../modules/auth/password-reset.service';
+import type { AvatarImportService } from '../modules/images/avatar-import.service';
 import type { ImagesService } from '../modules/images/images.service';
 import type { StorageDriver } from '../storage/storage.driver';
 import type { JobProcessors } from './job-types';
@@ -13,6 +14,7 @@ export interface ProcessorDeps {
   authCleanup: AuthCleanupService;
   storage: StorageDriver;
   images: ImagesService;
+  avatarImport: AvatarImportService;
 }
 
 export function createJobProcessors(deps: ProcessorDeps): JobProcessors {
@@ -22,6 +24,9 @@ export function createJobProcessors(deps: ProcessorDeps): JobProcessors {
     'auth.cleanup': async () => {
       const removed = await deps.authCleanup.run();
       deps.logger.info(removed, 'Auth cleanup finished');
+    },
+    'avatar.import': async ({ userId, url }) => {
+      await deps.avatarImport.import(userId, url);
     },
     'storage.delete': ({ keys }) => deps.storage.delete(keys),
     'images.purge': async () => {

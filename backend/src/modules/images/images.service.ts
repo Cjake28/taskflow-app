@@ -211,20 +211,30 @@ export class ImagesService {
     return toImageResponse(restored);
   }
 
-  /** Replaces the user's avatar; the previous one is soft-deleted in the same transaction. */
-  async setAvatar(userId: string, upload: UploadedImage): Promise<void> {
+  /**
+   * Replaces the user's avatar; the previous one is soft-deleted in the same
+   * transaction. With `onlyIfMissing` (OAuth import) an existing avatar wins.
+   * Returns whether the avatar was set.
+   */
+  async setAvatar(
+    userId: string,
+    upload: UploadedImage,
+    options: { onlyIfMissing?: boolean } = {},
+  ): Promise<boolean> {
     const processed = await this.processor.process(upload.buffer, 'avatar');
     const id = uuidv7(this.clock.now().getTime());
     const key = imageKeys(userId, id).display;
     await this.writeObjects([{ key, buffer: processed.display.buffer }]);
 
+    let applied: boolean;
     try {
-      await this.prisma.$transaction(async (tx) => {
+      applied = await this.prisma.$transaction(async (tx) => {
         await this.lockUser(tx, userId);
         const user = await tx.user.findUniqueOrThrow({
           where: { id: userId },
           select: { avatarImageId: true },
         });
+        if (options.onlyIfMissing && user.avatarImageId) return false;
         await tx.image.create({
           data: {
             id,
@@ -244,12 +254,18 @@ export class ImagesService {
             data: { deletedAt: this.clock.now() },
           });
         }
+        return true;
       });
     } catch (err) {
       await this.discardObjects([key]);
       throw err;
     }
+    if (!applied) {
+      await this.discardObjects([key]);
+      return false;
+    }
     await this.afterSoftDelete();
+    return true;
   }
 
   async removeAvatar(userId: string): Promise<void> {
