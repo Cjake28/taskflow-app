@@ -1,4 +1,5 @@
 import type { Redis } from 'ioredis';
+import { createRateLimiters, type RateLimiters } from './common/security/rate-limiters';
 import { systemClock, type Clock } from './common/utils/clock';
 import { createLogger, type Logger } from './common/utils/logger';
 import { AccessTokenService } from './common/utils/tokens';
@@ -19,6 +20,7 @@ export interface Container {
   logger: Logger;
   prisma: Db;
   redis: Redis;
+  limiters: RateLimiters;
   accessTokens: AccessTokenService;
   sessions: SessionsService;
   close(): Promise<void>;
@@ -32,6 +34,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
   const redis = createRedis(env.REDIS_URL, logger);
   await redis.connect();
 
+  const limiters = createRateLimiters(redis, env.RATE_LIMIT_SCALE);
   const accessTokens = new AccessTokenService(
     env.JWT_ACCESS_SECRET,
     env.ACCESS_TOKEN_TTL_MINUTES,
@@ -49,6 +52,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     logger,
     prisma,
     redis,
+    limiters,
     accessTokens,
     sessions,
     async close() {
