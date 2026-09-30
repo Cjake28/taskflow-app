@@ -20,19 +20,22 @@ npm install
 cp backend/.env.example backend/.env    # then set JWT_ACCESS_SECRET to a long random value
 docker compose up -d                    # PostgreSQL, Redis and Mailpit
 npm run db:migrate                      # applies Prisma migrations
-npm run dev                             # API on http://localhost:4000
+npm run dev                             # API on :4000 + web app on http://localhost:5173
 ```
 
-Health check: <http://localhost:4000/api/v1/health>
+Open <http://localhost:5173>. Health check: <http://localhost:4000/api/v1/health>
 
-If a default port is already in use on your machine, override it: Docker host ports through a root `.env` file (`TASKFLOW_POSTGRES_PORT`, `TASKFLOW_REDIS_PORT`, `TASKFLOW_SMTP_PORT`, `TASKFLOW_MAILPIT_UI_PORT`) and the API port through `PORT` in `backend/.env` (update `REDIS_URL`/`DATABASE_URL` to match).
+`npm run dev` starts the backend and the Vite dev server together (`concurrently`); `npm run dev:backend` and `npm run dev:frontend` run one side only. The Vite server proxies `/api` to the backend, so the browser sees a single origin: no CORS, and the httpOnly auth cookies just work.
+
+If a default port is already in use on your machine, override it: Docker host ports through a root `.env` file (`TASKFLOW_POSTGRES_PORT`, `TASKFLOW_REDIS_PORT`, `TASKFLOW_SMTP_PORT`, `TASKFLOW_MAILPIT_UI_PORT`) and the API port through `PORT` in `backend/.env` (update `REDIS_URL`/`DATABASE_URL` to match). For the web app, create `frontend/.env.local` (see `frontend/.env.example`) with `WEB_PORT` (default 5173) and `API_PORT` (the proxy target, default 4000); keep the backend's `FRONTEND_URL` in sync with the web port.
 
 ### Tests
 
 With the Docker services running:
 
 ```bash
-npm run test         # shared + backend (backend tests use the taskflow_test database and Redis DB 1)
+npm run test         # shared + backend + frontend (backend tests use the taskflow_test database and Redis DB 1)
+npm run test -w @taskflow/frontend   # frontend only (Vitest + Testing Library, no services needed)
 npm run typecheck
 npm run lint
 ```
