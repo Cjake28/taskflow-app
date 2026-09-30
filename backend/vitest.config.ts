@@ -23,6 +23,8 @@ export default defineConfig({
       ...fileEnv,
       NODE_ENV: 'test',
       LOG_LEVEL: 'silent',
+      FRONTEND_URL: 'http://localhost:5173',
+      TRUST_PROXY: 'loopback',
       DATABASE_URL: testDatabaseUrl,
       REDIS_URL: redisUrl.toString(),
       HIBP_ENABLED: 'false',
