@@ -23,9 +23,13 @@ import { AuthCleanupService } from './modules/auth/auth-cleanup.service';
 import { AuthService } from './modules/auth/auth.service';
 import { PasswordResetService } from './modules/auth/password-reset.service';
 import { SessionsService } from './modules/auth/sessions.service';
+import { ImageProcessor } from './modules/images/image-processor';
+import { ImagesService } from './modules/images/images.service';
 import { TasksService } from './modules/tasks/tasks.service';
 import { UsersService } from './modules/users/users.service';
 import { createRedis } from './redis/redis';
+import { createStorageDriver } from './storage/create-storage';
+import type { StorageDriver } from './storage/storage.driver';
 
 export interface ContainerOverrides {
   env?: Env;
@@ -33,6 +37,7 @@ export interface ContainerOverrides {
   logger?: Logger;
   breachChecker?: PasswordBreachChecker;
   mailTransport?: MailTransport;
+  storage?: StorageDriver;
   /** `inline` runs jobs synchronously (tests); `bullmq` uses Redis-backed queues (default). */
   jobs?: 'inline' | 'bullmq';
 }
@@ -56,6 +61,8 @@ export interface Container {
   authCleanup: AuthCleanupService;
   activities: ActivityService;
   tasks: TasksService;
+  storage: StorageDriver;
+  images: ImagesService;
   processors: JobProcessors;
   /** Starts BullMQ workers and cron schedules in this process. */
   startWorkers(): Promise<void>;
@@ -123,9 +130,35 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
   );
   const authCleanup = new AuthCleanupService(prisma, clock);
   const activities = new ActivityService(prisma);
-  const tasks = new TasksService(prisma, activities, clock);
+  const storage = overrides.storage ?? createStorageDriver(env);
+  const images = new ImagesService(
+    prisma,
+    storage,
+    new ImageProcessor(),
+    activities,
+    jobs,
+    clock,
+    logger,
+    {
+      quotaBytes: env.USER_STORAGE_QUOTA_MB * 1024 * 1024,
+      retentionDays: env.IMAGE_RETENTION_DAYS,
+      orphanGraceHours: env.ORPHAN_GRACE_HOURS,
+    },
+  );
+  const tasks = new TasksService(prisma, activities, clock, {
+    // Without a retention window, a deleted task's images are purged right away.
+    afterTaskDeleted:
+      env.IMAGE_RETENTION_DAYS === 0 ? () => jobs.enqueue('images.purge', {}) : undefined,
+  });
 
-  const processors = createJobProcessors({ logger, passwordReset, accountEmails, authCleanup });
+  const processors = createJobProcessors({
+    logger,
+    passwordReset,
+    accountEmails,
+    authCleanup,
+    storage,
+    images,
+  });
   if (jobs instanceof InlineJobQueue) jobs.setProcessors(processors);
 
   let workers: WorkerHandle | null = null;
@@ -149,6 +182,8 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     authCleanup,
     activities,
     tasks,
+    storage,
+    images,
     processors,
     async startWorkers() {
       if (!bullConnection || !(jobs instanceof BullJobQueue) || workers) return;
@@ -158,6 +193,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     async close() {
       await workers?.close();
       await jobs.close();
+      storage.close?.();
       await Promise.allSettled([prisma.$disconnect(), redis.quit(), bullConnection?.quit()]);
     },
   };

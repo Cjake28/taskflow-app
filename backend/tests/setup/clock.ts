@@ -14,4 +14,9 @@ export class TestClock implements Clock {
   advance(ms: number): void {
     this.current += ms;
   }
+
+  /** Back to real time (called between tests). */
+  reset(): void {
+    this.current = Date.now();
+  }
 }

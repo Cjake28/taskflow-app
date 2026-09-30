@@ -15,10 +15,10 @@ beforeAll(async () => {
 afterAll(() => h.close());
 
 describe('health', () => {
-  it('reports database and redis status', async () => {
+  it('reports database, redis and storage status', async () => {
     const res = await h.get('/api/v1/health');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ data: { status: 'ok', db: 'ok', redis: 'ok' } });
+    expect(res.body).toEqual({ data: { status: 'ok', db: 'ok', redis: 'ok', storage: 'ok' } });
   });
 });
 
