@@ -18,10 +18,12 @@ import { registerSchedules } from './jobs/schedules';
 import { startWorkers, type WorkerHandle } from './jobs/worker';
 import { AccountEmailsService } from './mail/account-emails.service';
 import { SmtpMailTransport, type MailTransport } from './mail/mail.transport';
+import { ActivityService } from './modules/activities/activity.service';
 import { AuthCleanupService } from './modules/auth/auth-cleanup.service';
 import { AuthService } from './modules/auth/auth.service';
 import { PasswordResetService } from './modules/auth/password-reset.service';
 import { SessionsService } from './modules/auth/sessions.service';
+import { TasksService } from './modules/tasks/tasks.service';
 import { UsersService } from './modules/users/users.service';
 import { createRedis } from './redis/redis';
 
@@ -52,6 +54,8 @@ export interface Container {
   accountEmails: AccountEmailsService;
   passwordReset: PasswordResetService;
   authCleanup: AuthCleanupService;
+  activities: ActivityService;
+  tasks: TasksService;
   processors: JobProcessors;
   /** Starts BullMQ workers and cron schedules in this process. */
   startWorkers(): Promise<void>;
@@ -118,6 +122,8 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     { ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES, frontendUrl: env.FRONTEND_URL },
   );
   const authCleanup = new AuthCleanupService(prisma, clock);
+  const activities = new ActivityService(prisma);
+  const tasks = new TasksService(prisma, activities, clock);
 
   const processors = createJobProcessors({ logger, passwordReset, accountEmails, authCleanup });
   if (jobs instanceof InlineJobQueue) jobs.setProcessors(processors);
@@ -141,6 +147,8 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     accountEmails,
     passwordReset,
     authCleanup,
+    activities,
+    tasks,
     processors,
     async startWorkers() {
       if (!bullConnection || !(jobs instanceof BullJobQueue) || workers) return;
