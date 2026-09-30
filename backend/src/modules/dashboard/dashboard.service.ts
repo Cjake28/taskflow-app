@@ -1,7 +1,8 @@
 import type { DashboardStats } from '@taskflow/shared';
 import type { Clock } from '../../common/utils/clock';
 import type { Db } from '../../database/prisma';
-import { TaskPriority, TaskStatus } from '../../generated/prisma/client';
+import type { TaskPriority } from '../../generated/prisma/client';
+import { TaskStatus } from '../../generated/prisma/client';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
