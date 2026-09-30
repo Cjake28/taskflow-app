@@ -2,6 +2,8 @@ import type { Logger } from '../common/utils/logger';
 import type { AccountEmailsService } from '../mail/account-emails.service';
 import type { AuthCleanupService } from '../modules/auth/auth-cleanup.service';
 import type { PasswordResetService } from '../modules/auth/password-reset.service';
+import type { ImagesService } from '../modules/images/images.service';
+import type { StorageDriver } from '../storage/storage.driver';
 import type { JobProcessors } from './job-types';
 
 export interface ProcessorDeps {
@@ -9,6 +11,8 @@ export interface ProcessorDeps {
   passwordReset: PasswordResetService;
   accountEmails: AccountEmailsService;
   authCleanup: AuthCleanupService;
+  storage: StorageDriver;
+  images: ImagesService;
 }
 
 export function createJobProcessors(deps: ProcessorDeps): JobProcessors {
@@ -18,6 +22,15 @@ export function createJobProcessors(deps: ProcessorDeps): JobProcessors {
     'auth.cleanup': async () => {
       const removed = await deps.authCleanup.run();
       deps.logger.info(removed, 'Auth cleanup finished');
+    },
+    'storage.delete': ({ keys }) => deps.storage.delete(keys),
+    'images.purge': async () => {
+      const purged = await deps.images.purgeExpired();
+      if (purged > 0) deps.logger.info({ purged }, 'Expired images purged');
+    },
+    'storage.orphan-sweep': async () => {
+      const deleted = await deps.images.sweepOrphans();
+      if (deleted > 0) deps.logger.info({ deleted }, 'Orphaned objects removed');
     },
   };
 }
