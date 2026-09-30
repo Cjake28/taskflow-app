@@ -4,5 +4,6 @@ export * from './rules/password-policy';
 export * from './rules/username';
 export * from './schemas/common';
 export * from './schemas/auth';
+export * from './schemas/user';
 export * from './types/api';
 export * from './types/user';
