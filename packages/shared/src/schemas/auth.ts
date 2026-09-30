@@ -59,3 +59,39 @@ export const loginSchema = z.strictObject({
 
 export type LoginInput = z.input<typeof loginSchema>;
 export type LoginData = z.output<typeof loginSchema>;
+
+export const forgotPasswordSchema = z.strictObject({ email: emailSchema });
+
+export type ForgotPasswordInput = z.input<typeof forgotPasswordSchema>;
+export type ForgotPasswordData = z.output<typeof forgotPasswordSchema>;
+
+const resetTokenSchema = z
+  .string({ error: 'Reset token is required' })
+  .min(1, 'Reset token is required')
+  .max(256, 'Reset token is invalid');
+
+export const verifyResetTokenSchema = z.strictObject({ token: resetTokenSchema });
+
+export type VerifyResetTokenData = z.output<typeof verifyResetTokenSchema>;
+
+export const resetPasswordSchema = z
+  .strictObject({
+    token: resetTokenSchema,
+    password: passwordSchema,
+    confirmPassword: confirmPasswordSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (data.password !== data.confirmPassword) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['confirmPassword'],
+        message: 'Passwords do not match',
+      });
+    }
+  });
+
+export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
+export type ResetPasswordData = z.output<typeof resetPasswordSchema>;
+
+export const FORGOT_PASSWORD_MESSAGE =
+  'If an account with that email exists, password reset instructions have been sent.';

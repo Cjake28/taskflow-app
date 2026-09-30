@@ -1,29 +1,58 @@
-import { loginSchema, registerSchema } from '@taskflow/shared';
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resetPasswordSchema,
+  verifyResetTokenSchema,
+} from '@taskflow/shared';
 import { Router, type RequestHandler } from 'express';
 import { rateLimit } from '../../common/middleware/rate-limit';
 import { validate } from '../../common/middleware/validate';
 import type { RateLimiters } from '../../common/security/rate-limiters';
 import type { AuthController } from './auth.controller';
+import type { PasswordResetController } from './password-reset.controller';
 
 export function createAuthRouter(
-  controller: AuthController,
+  controllers: { auth: AuthController; passwordReset: PasswordResetController },
   deps: { limiters: RateLimiters; authenticate: RequestHandler },
 ): Router {
+  const { auth, passwordReset } = controllers;
   const router = Router();
+
   router.post(
     '/register',
     rateLimit(deps.limiters.register),
     validate({ body: registerSchema }),
-    controller.register,
+    auth.register,
   );
   router.post(
     '/login',
     rateLimit(deps.limiters.loginIp),
     validate({ body: loginSchema }),
-    controller.login,
+    auth.login,
   );
-  router.post('/refresh', rateLimit(deps.limiters.refreshIp), controller.refresh);
-  router.post('/logout', controller.logout);
-  router.post('/logout-all', deps.authenticate, controller.logoutAll);
+  router.post('/refresh', rateLimit(deps.limiters.refreshIp), auth.refresh);
+  router.post('/logout', auth.logout);
+  router.post('/logout-all', deps.authenticate, auth.logoutAll);
+
+  router.post(
+    '/forgot-password',
+    rateLimit(deps.limiters.forgotIp),
+    validate({ body: forgotPasswordSchema }),
+    passwordReset.forgotPassword,
+  );
+  router.post(
+    '/reset-password/verify',
+    rateLimit(deps.limiters.resetIp),
+    validate({ body: verifyResetTokenSchema }),
+    passwordReset.verifyResetToken,
+  );
+  router.post(
+    '/reset-password',
+    rateLimit(deps.limiters.resetIp),
+    validate({ body: resetPasswordSchema }),
+    passwordReset.resetPassword,
+  );
+
   return router;
 }

@@ -1,4 +1,4 @@
-import type { Redis } from 'ioredis';
+import { Redis } from 'ioredis';
 import { LoginThrottle } from './common/security/login-throttle';
 import {
   HibpPasswordChecker,
@@ -11,7 +11,16 @@ import { createLogger, type Logger } from './common/utils/logger';
 import { AccessTokenService } from './common/utils/tokens';
 import { loadEnv, type Env } from './config/env';
 import { createPrismaClient, type Db } from './database/prisma';
+import { BullJobQueue, InlineJobQueue, type JobQueue } from './jobs/job-queue';
+import type { JobProcessors } from './jobs/job-types';
+import { createJobProcessors } from './jobs/processors';
+import { registerSchedules } from './jobs/schedules';
+import { startWorkers, type WorkerHandle } from './jobs/worker';
+import { AccountEmailsService } from './mail/account-emails.service';
+import { SmtpMailTransport, type MailTransport } from './mail/mail.transport';
+import { AuthCleanupService } from './modules/auth/auth-cleanup.service';
 import { AuthService } from './modules/auth/auth.service';
+import { PasswordResetService } from './modules/auth/password-reset.service';
 import { SessionsService } from './modules/auth/sessions.service';
 import { UsersService } from './modules/users/users.service';
 import { createRedis } from './redis/redis';
@@ -21,6 +30,9 @@ export interface ContainerOverrides {
   clock?: Clock;
   logger?: Logger;
   breachChecker?: PasswordBreachChecker;
+  mailTransport?: MailTransport;
+  /** `inline` runs jobs synchronously (tests); `bullmq` uses Redis-backed queues (default). */
+  jobs?: 'inline' | 'bullmq';
 }
 
 export interface Container {
@@ -35,6 +47,14 @@ export interface Container {
   users: UsersService;
   breachChecker: PasswordBreachChecker;
   auth: AuthService;
+  jobs: JobQueue;
+  mailTransport: MailTransport;
+  accountEmails: AccountEmailsService;
+  passwordReset: PasswordResetService;
+  authCleanup: AuthCleanupService;
+  processors: JobProcessors;
+  /** Starts BullMQ workers and cron schedules in this process. */
+  startWorkers(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -45,6 +65,12 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
   const prisma = createPrismaClient(env.DATABASE_URL);
   const redis = createRedis(env.REDIS_URL, logger);
   await redis.connect();
+
+  const jobsMode = overrides.jobs ?? 'bullmq';
+  // BullMQ requires its own connection with maxRetriesPerRequest: null.
+  const bullConnection =
+    jobsMode === 'bullmq' ? new Redis(env.REDIS_URL, { maxRetriesPerRequest: null }) : null;
+  const jobs: JobQueue = bullConnection ? new BullJobQueue(bullConnection) : new InlineJobQueue();
 
   const limiters = createRateLimiters(redis, env.RATE_LIMIT_SCALE);
   const accessTokens = new AccessTokenService(
@@ -68,6 +94,36 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     new LoginThrottle(limiters.loginFailures),
   );
 
+  const mailTransport =
+    overrides.mailTransport ??
+    new SmtpMailTransport({
+      host: env.SMTP_HOST,
+      port: env.SMTP_PORT,
+      secure: env.SMTP_SECURE,
+      user: env.SMTP_USER,
+      pass: env.SMTP_PASS,
+      from: env.MAIL_FROM,
+    });
+  const accountEmails = new AccountEmailsService(prisma, mailTransport, {
+    frontendUrl: env.FRONTEND_URL,
+    resetTtlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
+  });
+  const passwordReset = new PasswordResetService(
+    prisma,
+    jobs,
+    sessions,
+    accountEmails,
+    breachChecker,
+    clock,
+    { ttlMinutes: env.PASSWORD_RESET_TTL_MINUTES, frontendUrl: env.FRONTEND_URL },
+  );
+  const authCleanup = new AuthCleanupService(prisma, clock);
+
+  const processors = createJobProcessors({ logger, passwordReset, accountEmails, authCleanup });
+  if (jobs instanceof InlineJobQueue) jobs.setProcessors(processors);
+
+  let workers: WorkerHandle | null = null;
+
   return {
     env,
     clock,
@@ -80,8 +136,21 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     users,
     breachChecker,
     auth,
+    jobs,
+    mailTransport,
+    accountEmails,
+    passwordReset,
+    authCleanup,
+    processors,
+    async startWorkers() {
+      if (!bullConnection || !(jobs instanceof BullJobQueue) || workers) return;
+      workers = startWorkers(bullConnection, processors, logger);
+      await registerSchedules(jobs);
+    },
     async close() {
-      await Promise.allSettled([prisma.$disconnect(), redis.quit()]);
+      await workers?.close();
+      await jobs.close();
+      await Promise.allSettled([prisma.$disconnect(), redis.quit(), bullConnection?.quit()]);
     },
   };
 }
