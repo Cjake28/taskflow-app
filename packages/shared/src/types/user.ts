@@ -6,6 +6,8 @@ export interface UserDto {
   email: string;
   avatarUrl: string | null;
   hasPassword: boolean;
+  /** False until the address is confirmed through the emailed link (OAuth emails count as verified). */
+  emailVerified: boolean;
   createdAt: string;
 }
 

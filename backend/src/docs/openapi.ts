@@ -8,6 +8,7 @@ import {
   resetPasswordSchema,
   updateProfileSchema,
   updateTaskSchema,
+  verifyEmailSchema,
   verifyResetTokenSchema,
 } from '@taskflow/shared';
 import { z, type ZodType } from 'zod';
@@ -98,6 +99,7 @@ const schemas: Record<string, Json> = {
       email: { type: 'string', format: 'email' },
       avatarUrl: { type: ['string', 'null'], example: '/api/v1/images/0199…' },
       hasPassword: { type: 'boolean' },
+      emailVerified: { type: 'boolean' },
       createdAt: DATE_TIME,
     },
   },
@@ -351,6 +353,22 @@ const paths: Record<string, Json> = {
       security: [],
       requestBody: body(resetPasswordSchema),
       responses: { 204: noContent, ...errors(400, 429) },
+    },
+  },
+  '/auth/verify-email': {
+    post: {
+      tags: ['Auth'],
+      summary: 'Confirm the email address with the emailed token (single use, 24 h)',
+      security: [],
+      requestBody: body(verifyEmailSchema),
+      responses: { 204: noContent, ...errors(400, 429) },
+    },
+  },
+  '/auth/verify-email/resend': {
+    post: {
+      tags: ['Auth'],
+      summary: 'Email a new confirmation link (no-op when already confirmed)',
+      responses: { 204: noContent, ...errors(401, 429) },
     },
   },
   '/auth/oauth/providers': {
