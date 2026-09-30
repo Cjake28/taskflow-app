@@ -83,10 +83,10 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     refreshTtlDays: env.REFRESH_TOKEN_TTL_DAYS,
     rememberTtlDays: env.REFRESH_TOKEN_REMEMBER_TTL_DAYS,
   });
-  const users = new UsersService(prisma);
   const breachChecker =
     overrides.breachChecker ??
     (env.HIBP_ENABLED ? new HibpPasswordChecker(logger) : noopBreachChecker);
+  const users = new UsersService(prisma, sessions, jobs, breachChecker, clock);
   const auth = new AuthService(
     prisma,
     sessions,
