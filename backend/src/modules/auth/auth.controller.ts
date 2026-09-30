@@ -1,7 +1,7 @@
-import type { RegisterData } from '@taskflow/shared';
+import type { LoginData, RegisterData } from '@taskflow/shared';
 import type { Request, Response } from 'express';
 import { sessionMeta } from '../../common/http/request-meta';
-import { created } from '../../common/http/respond';
+import { created, ok } from '../../common/http/respond';
 import { setAuthCookies } from '../../common/security/cookies';
 import type { Clock } from '../../common/utils/clock';
 import type { AccessTokenService } from '../../common/utils/tokens';
@@ -29,5 +29,11 @@ export class AuthController {
     );
     setAuthCookies(res, this.env, session, this.clock.now());
     created(res, toSessionPayload(toUserResponse(user), session.access));
+  };
+
+  login = async (req: Request, res: Response) => {
+    const { user, session } = await this.auth.login(req.valid.body as LoginData, sessionMeta(req));
+    setAuthCookies(res, this.env, session, this.clock.now());
+    ok(res, toSessionPayload(toUserResponse(user), session.access));
   };
 }

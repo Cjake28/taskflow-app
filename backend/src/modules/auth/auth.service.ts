@@ -1,16 +1,18 @@
-import { ErrorCode, type RegisterData } from '@taskflow/shared';
-import { HttpException, ValidationException } from '../../common/exceptions';
+import { ErrorCode, type LoginData, type RegisterData } from '@taskflow/shared';
+import { HttpException, UnauthorizedException, ValidationException } from '../../common/exceptions';
 import type { SessionMeta } from '../../common/http/request-meta';
 import type { LoginThrottle } from '../../common/security/login-throttle';
 import {
   BREACHED_PASSWORD_MESSAGE,
   type PasswordBreachChecker,
 } from '../../common/security/password-breach';
-import { hashPassword } from '../../common/utils/password';
+import { hashPassword, verifyAgainstDummyHash, verifyPassword } from '../../common/utils/password';
 import { isUniqueViolation, type Db } from '../../database/prisma';
 import { assertEmailAndUsernameAvailable } from '../users/user-uniqueness';
 import type { UserRecord } from '../users/users.mapper';
 import type { IssuedSession, SessionsService } from './sessions.service';
+
+export const INVALID_CREDENTIALS_MESSAGE = 'Invalid email/username or password.';
 
 export interface AuthResult {
   user: UserRecord;
@@ -55,6 +57,34 @@ export class AuthService {
       });
 
     const session = await this.sessions.create(user.id, { persistent: false, ...meta });
+    return { user, session };
+  }
+
+  async login(input: LoginData, meta: SessionMeta): Promise<AuthResult> {
+    const ip = meta.ip ?? 'unknown';
+    await this.loginThrottle.assertAllowed(input.identifier, ip);
+
+    const user = await this.prisma.user.findFirst({
+      where: input.identifier.includes('@')
+        ? { email: input.identifier }
+        : { username: input.identifier },
+      omit: { passwordHash: false },
+    });
+
+    const valid = user?.passwordHash
+      ? await verifyPassword(user.passwordHash, input.password)
+      : await verifyAgainstDummyHash(input.password);
+
+    if (!user || !valid) {
+      await this.loginThrottle.recordFailure(input.identifier, ip);
+      throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE, ErrorCode.INVALID_CREDENTIALS);
+    }
+
+    await this.loginThrottle.reset(input.identifier, ip);
+    const session = await this.sessions.create(user.id, {
+      persistent: input.rememberMe,
+      ...meta,
+    });
     return { user, session };
   }
 }

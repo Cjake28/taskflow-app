@@ -1,4 +1,4 @@
-import { registerSchema } from '@taskflow/shared';
+import { loginSchema, registerSchema } from '@taskflow/shared';
 import { Router, type RequestHandler } from 'express';
 import { rateLimit } from '../../common/middleware/rate-limit';
 import { validate } from '../../common/middleware/validate';
@@ -15,6 +15,12 @@ export function createAuthRouter(
     rateLimit(deps.limiters.register),
     validate({ body: registerSchema }),
     controller.register,
+  );
+  router.post(
+    '/login',
+    rateLimit(deps.limiters.loginIp),
+    validate({ body: loginSchema }),
+    controller.login,
   );
   return router;
 }
