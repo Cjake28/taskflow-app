@@ -14,7 +14,9 @@
     "prisma:generate": "prisma generate",
     "predev": "prisma generate",
     "pretest": "prisma generate",
-    "pretypecheck": "prisma generate"
+    "pretypecheck": "prisma generate",
+    "worker": "tsx src/worker.ts",
+    "prestart": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
