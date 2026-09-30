@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // Reset links carry a secret token in the URL: never leak it through the Referer header,
+      // not even on asset requests made before React renders (spec §8.3).
+      if (location.pathname === '/reset-password') {
+        var referrer = document.createElement('meta');
+        referrer.name = 'referrer';
+        referrer.content = 'no-referrer';
+        document.head.appendChild(referrer);
+      }
+      // Apply the saved theme before the first paint so there is no light/dark flash.
+      (function () {
+        try {
+          var stored = localStorage.getItem('tf-theme');
+          var dark =
+            stored === 'dark' ||
+            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* storage unavailable: fall back to light */
+        }
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="TaskFlow: plan it, track it, get it done." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>TaskFlow</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

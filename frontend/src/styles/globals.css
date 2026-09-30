@@ -1,0 +1,313 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Class strategy: <html class="dark"> switches every semantic token (see ThemeProvider). */
+@custom-variant dark (&:is(.dark *));
+
+/* State variants used by shadcn/ui (v4) primitives; Radix exposes them as data-state="…". */
+@custom-variant data-open {
+  &:where([data-state='open']),
+  &:where([data-open]:not([data-open='false'])) {
+    @slot;
+  }
+}
+@custom-variant data-closed {
+  &:where([data-state='closed']),
+  &:where([data-closed]:not([data-closed='false'])) {
+    @slot;
+  }
+}
+@custom-variant data-checked {
+  &:where([data-state='checked']),
+  &:where([data-checked]:not([data-checked='false'])) {
+    @slot;
+  }
+}
+@custom-variant data-unchecked {
+  &:where([data-state='unchecked']),
+  &:where([data-unchecked]:not([data-unchecked='false'])) {
+    @slot;
+  }
+}
+@custom-variant data-selected {
+  &:where([data-selected='true']) {
+    @slot;
+  }
+}
+@custom-variant data-disabled {
+  &:where([data-disabled='true']),
+  &:where([data-disabled]:not([data-disabled='false'])) {
+    @slot;
+  }
+}
+@custom-variant data-active {
+  &:where([data-state='active']),
+  &:where([data-active]:not([data-active='false'])) {
+    @slot;
+  }
+}
+@custom-variant data-horizontal {
+  &:where([data-orientation='horizontal']) {
+    @slot;
+  }
+}
+@custom-variant data-vertical {
+  &:where([data-orientation='vertical']) {
+    @slot;
+  }
+}
+
+/*
+ * TaskFlow design tokens: "Soft Pastel+" (design spec §15).
+ * Components reference the semantic layer only; dark mode redefines it.
+ */
+:root {
+  /* Surfaces and text */
+  --background: #f3f4fc;
+  --foreground: #1b1c3a;
+  --card: #ffffff;
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --fill: #f0f1f9;
+  --border: #e3e5f0;
+  --muted: var(--fill);
+  --muted-foreground: #858aa6;
+  --input: var(--fill);
+
+  /* Brand */
+  --primary: #5b5bf0;
+  --primary-2: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: var(--fill);
+  --secondary-foreground: var(--foreground);
+  --accent: color-mix(in oklab, var(--primary) var(--soft), var(--card));
+  --accent-foreground: var(--primary);
+  --ring: var(--primary);
+
+  /* Status and danger */
+  --status-todo: #5b5bf0;
+  --status-progress: #f28b22;
+  --status-done: #14b87f;
+  --danger: #f04e6a;
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --on-progress: #2e1f03;
+
+  /* Derived tints: color-mix(in oklab, <colour> var(--soft), var(--card)) */
+  --soft: 16%;
+  --soft-strong: 24%;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgb(27 28 58 / 0.04), 0 12px 32px -18px rgb(27 28 58 / 0.2);
+  --shadow-glow: 0 16px 30px -12px rgb(91 91 240 / 0.55);
+  --shadow-pop: 0 30px 60px -20px rgb(20 20 50 / 0.35);
+  --scrim: rgb(20 21 45 / 0.42);
+
+  /* Shape */
+  --radius: 14px;
+
+  color-scheme: light;
+}
+
+/*
+ * Always-light island (e.g. the white mini cards floating on the auth brand panel). Declaring the
+ * light values on the element overrides the dark ones it would otherwise inherit from <html>.
+ */
+.surface-light {
+  --foreground: #1b1c3a;
+  --card: #ffffff;
+  --fill: #f0f1f9;
+  --border: #e3e5f0;
+  --muted-foreground: #858aa6;
+  --primary: #5b5bf0;
+  --primary-2: #8b5cf6;
+  --status-todo: #5b5bf0;
+  --status-progress: #f28b22;
+  --status-done: #14b87f;
+  --danger: #f04e6a;
+  --soft: 16%;
+  --soft-strong: 24%;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #0e0f21;
+  --foreground: #edeefa;
+  --card: #181a31;
+  --fill: #222442;
+  --border: #26284a;
+  --muted-foreground: #9093b2;
+
+  --primary: #7c7cf8;
+  --primary-2: #a07cf8;
+
+  --status-todo: #8385f8;
+  --status-progress: #f89b45;
+  --status-done: #34cd95;
+  --danger: #f46882;
+
+  --soft: 18%;
+  --soft-strong: 28%;
+
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 14px 34px -18px rgb(0 0 0 / 0.7);
+  --shadow-glow: 0 16px 30px -14px rgb(124 124 248 / 0.5);
+  --shadow-pop: 0 30px 60px -20px rgb(0 0 0 / 0.8);
+  --scrim: rgb(4 4 12 / 0.6);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans:
+    'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-fill: var(--fill);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-2: var(--primary-2);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-danger: var(--danger);
+  --color-status-todo: var(--status-todo);
+  --color-status-progress: var(--status-progress);
+  --color-status-done: var(--status-done);
+  --color-on-progress: var(--on-progress);
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: calc(var(--radius) - 2px);
+  --radius-xl: var(--radius);
+  --radius-input: 14px;
+  --radius-thumb: 16px;
+  --radius-tile: 20px;
+  --radius-card: 24px;
+  --radius-dialog: 26px;
+
+  --animate-logo-pulse: logo-pulse 1.6s ease-in-out infinite;
+  --animate-loadbar: loadbar 1.2s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.3s linear infinite;
+
+  @keyframes logo-pulse {
+    50% {
+      transform: scale(1.06);
+    }
+  }
+  @keyframes loadbar {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+}
+
+/* Elevation utilities (values change per theme, so they read the runtime variables). */
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+@utility shadow-glow {
+  box-shadow: var(--shadow-glow);
+}
+@utility shadow-pop {
+  box-shadow: var(--shadow-pop);
+}
+
+/* Primary gradient used by primary actions, the logo mark and hero surfaces. */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(135deg, var(--primary), var(--primary-2));
+}
+
+/*
+ * Tints. Set the colour with an arbitrary property, e.g.
+ *   class="[--tint:var(--status-progress)] bg-tint-soft text-tint"
+ * One formula works in both themes because it mixes with the current card colour.
+ */
+@utility bg-tint-faint {
+  background-color: color-mix(in oklab, var(--tint) 10%, var(--card));
+}
+@utility bg-tint-soft {
+  background-color: color-mix(in oklab, var(--tint) var(--soft), var(--card));
+}
+@utility bg-tint-strong {
+  background-color: color-mix(in oklab, var(--tint) var(--soft-strong), var(--card));
+}
+@utility text-tint {
+  color: color-mix(in oklab, var(--tint) 80%, var(--foreground));
+}
+
+@utility skeleton {
+  border-radius: 10px;
+  background-image: linear-gradient(
+    90deg,
+    var(--fill) 0%,
+    color-mix(in oklab, var(--fill) 40%, var(--card)) 50%,
+    var(--fill) 100%
+  );
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/60;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-weight: 500;
+    min-height: 100dvh;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.02em;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 28%, transparent);
+  }
+  /* A visible focus ring for every keyboard-focusable element that doesn't style its own. */
+  :where(a, button, [role='button'], [role='tab'], [role='menuitem'], summary):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
