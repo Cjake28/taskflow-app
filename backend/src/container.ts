@@ -23,6 +23,7 @@ import { AuthCleanupService } from './modules/auth/auth-cleanup.service';
 import { AuthService } from './modules/auth/auth.service';
 import { PasswordResetService } from './modules/auth/password-reset.service';
 import { SessionsService } from './modules/auth/sessions.service';
+import { DashboardService } from './modules/dashboard/dashboard.service';
 import { ImageProcessor } from './modules/images/image-processor';
 import { ImagesService } from './modules/images/images.service';
 import { TasksService } from './modules/tasks/tasks.service';
@@ -63,6 +64,7 @@ export interface Container {
   tasks: TasksService;
   storage: StorageDriver;
   images: ImagesService;
+  dashboard: DashboardService;
   processors: JobProcessors;
   /** Starts BullMQ workers and cron schedules in this process. */
   startWorkers(): Promise<void>;
@@ -151,6 +153,8 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
       env.IMAGE_RETENTION_DAYS === 0 ? () => jobs.enqueue('images.purge', {}) : undefined,
   });
 
+  const dashboard = new DashboardService(prisma, clock);
+
   const processors = createJobProcessors({
     logger,
     passwordReset,
@@ -184,6 +188,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     tasks,
     storage,
     images,
+    dashboard,
     processors,
     async startWorkers() {
       if (!bullConnection || !(jobs instanceof BullJobQueue) || workers) return;
