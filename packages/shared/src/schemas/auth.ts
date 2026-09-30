@@ -93,5 +93,14 @@ export const resetPasswordSchema = z
 export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
 export type ResetPasswordData = z.output<typeof resetPasswordSchema>;
 
+const verificationTokenSchema = z
+  .string({ error: 'Verification token is required' })
+  .min(1, 'Verification token is required')
+  .max(256, 'Verification token is invalid');
+
+export const verifyEmailSchema = z.strictObject({ token: verificationTokenSchema });
+
+export type VerifyEmailData = z.output<typeof verifyEmailSchema>;
+
 export const FORGOT_PASSWORD_MESSAGE =
   'If an account with that email exists, password reset instructions have been sent.';

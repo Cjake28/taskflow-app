@@ -2,6 +2,7 @@ import type { Db } from '../database/prisma';
 import type { MailTransport } from './mail.transport';
 import { passwordChangedEmail } from './templates/password-changed';
 import { passwordResetEmail } from './templates/password-reset';
+import { verifyEmailEmail } from './templates/verify-email';
 
 export class AccountEmailsService {
   constructor(
@@ -19,6 +20,15 @@ export class AccountEmailsService {
       resetUrl,
       ttlMinutes: this.config.resetTtlMinutes,
     });
+    await this.transport.send({ to: user.email, ...content });
+  }
+
+  async sendEmailVerification(
+    user: { email: string; firstName: string },
+    verifyUrl: string,
+    ttlHours: number,
+  ): Promise<void> {
+    const content = verifyEmailEmail({ firstName: user.firstName, verifyUrl, ttlHours });
     await this.transport.send({ to: user.email, ...content });
   }
 

@@ -8,6 +8,7 @@ export interface UserRecord {
   email: string;
   passwordHash: string | null;
   avatarImageId: string | null;
+  emailVerifiedAt: Date | null;
   createdAt: Date;
 }
 
@@ -20,6 +21,7 @@ export function toUserResponse(user: UserRecord): UserDto {
     email: user.email,
     avatarUrl: user.avatarImageId ? `/api/v1/images/${user.avatarImageId}` : null,
     hasPassword: user.passwordHash !== null,
+    emailVerified: user.emailVerifiedAt !== null,
     createdAt: user.createdAt.toISOString(),
   };
 }

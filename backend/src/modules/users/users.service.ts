@@ -21,6 +21,7 @@ import { describeDevice, displayIp } from '../../common/utils/device';
 import { hashPassword, verifyPassword } from '../../common/utils/password';
 import { isUniqueViolation, type Db } from '../../database/prisma';
 import type { JobQueue } from '../../jobs/job-queue';
+import type { EmailVerificationService } from '../auth/email-verification.service';
 import type { SessionsService } from '../auth/sessions.service';
 import { assertEmailAndUsernameAvailable } from './user-uniqueness';
 import { toUserResponse } from './users.mapper';
@@ -34,6 +35,7 @@ export class UsersService {
     private readonly jobs: JobQueue,
     private readonly breachChecker: PasswordBreachChecker,
     private readonly clock: Clock,
+    private readonly emailVerification: EmailVerificationService,
   ) {}
 
   async getProfile(userId: string): Promise<UserDto> {
@@ -69,7 +71,7 @@ export class UsersService {
           ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
           ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
           ...(usernameChanged ? { username: input.username } : {}),
-          ...(emailChanged ? { email: input.email } : {}),
+          ...(emailChanged ? { email: input.email, emailVerifiedAt: null } : {}),
         },
         omit: { passwordHash: false },
       })
@@ -80,6 +82,11 @@ export class UsersService {
         }
         throw err;
       });
+    if (emailChanged) {
+      // Links sent to the previous address must not confirm the new one.
+      await this.emailVerification.invalidatePending(userId);
+      await this.emailVerification.requestVerification(userId);
+    }
     return toUserResponse(updated);
   }
 
