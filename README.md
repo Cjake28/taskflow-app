@@ -17,13 +17,39 @@ React 19 · TypeScript · Tailwind CSS 4 · Express 5 · Prisma 7 · PostgreSQL 
 
 ```bash
 npm install
-cp backend/.env.example backend/.env
-docker compose up -d
-npm run db:migrate
-npm run dev
+cp backend/.env.example backend/.env    # then set JWT_ACCESS_SECRET to a long random value
+docker compose up -d                    # PostgreSQL, Redis and Mailpit
+npm run db:migrate                      # applies Prisma migrations
+npm run dev                             # API on http://localhost:4000
 ```
 
-The API health check is available at <http://localhost:4000/api/v1/health>.
+Health check: <http://localhost:4000/api/v1/health>
+
+If a default port is already in use on your machine, override it: Docker host ports through a root `.env` file (`TASKFLOW_POSTGRES_PORT`, `TASKFLOW_REDIS_PORT`, `TASKFLOW_SMTP_PORT`, `TASKFLOW_MAILPIT_UI_PORT`) and the API port through `PORT` in `backend/.env` (update `REDIS_URL`/`DATABASE_URL` to match).
+
+### Tests
+
+With the Docker services running:
+
+```bash
+npm run test         # shared + backend (backend tests use the taskflow_test database and Redis DB 1)
+npm run typecheck
+npm run lint
+```
+
+### API so far
+
+| Method | Path                      | Notes                                                   |
+| ------ | ------------------------- | ------------------------------------------------------- |
+| GET    | `/api/v1/health`          | Database and Redis status                               |
+| POST   | `/api/v1/auth/register`   | Creates the account and signs in (httpOnly cookies)     |
+| POST   | `/api/v1/auth/login`      | `identifier` = email or username; optional `rememberMe` |
+| POST   | `/api/v1/auth/refresh`    | Rotates the refresh token                               |
+| POST   | `/api/v1/auth/logout`     | Revokes the current session                             |
+| POST   | `/api/v1/auth/logout-all` | Revokes every session                                   |
+| GET    | `/api/v1/users/me`        | Current user                                            |
+
+State-changing requests must send an `Origin` header matching `FRONTEND_URL` (browsers do this automatically). With curl, add `-H "Origin: http://localhost:5173"`.
 
 ## Design
 
