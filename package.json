@@ -22,6 +22,7 @@
     "format:check": "prettier --check .",
     "db:migrate": "npm run db:migrate -w @taskflow/backend",
     "db:studio": "npm run db:studio -w @taskflow/backend",
+    "db:seed": "npm run db:seed -w @taskflow/backend",
     "worker": "npm run worker -w @taskflow/backend"
   },
   "devDependencies": {
