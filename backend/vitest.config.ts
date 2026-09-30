@@ -15,6 +15,7 @@ redisUrl.pathname = '/1';
 export default defineConfig({
   test: {
     environment: 'node',
+    globalSetup: ['tests/setup/global-setup.ts'],
     fileParallelism: false,
     testTimeout: 20_000,
     hookTimeout: 60_000,
