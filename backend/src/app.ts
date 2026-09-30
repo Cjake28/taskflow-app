@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { errorHandler } from './common/middleware/error-handler';
 import { notFound } from './common/middleware/not-found';
 import { requestContext } from './common/middleware/request-context';
+import { verifyOrigin } from './common/middleware/verify-origin';
 import type { Container } from './container';
 import { createApiRouter } from './routes';
 
@@ -25,6 +26,7 @@ export function createApp(c: Container): Express {
   app.use(cors({ origin: c.env.FRONTEND_URL, credentials: true }));
   app.use(express.json({ limit: '10kb' }));
   app.use(cookieParser());
+  app.use(verifyOrigin(c.env.FRONTEND_URL));
   app.use((req, _res, next) => {
     req.valid = {};
     next();
