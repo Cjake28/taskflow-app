@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { UserDto } from '@taskflow/shared';
 
-import { generatedAvatarUri, initialsOf } from '@/lib/avatar';
+import { useGeneratedAvatar } from '@/hooks/use-generated-avatar';
+import { initialsOf } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 
 const SIZES = {
@@ -19,28 +20,18 @@ export interface AvatarProps {
   alt?: string;
 }
 
-type Source = 'uploaded' | 'generated';
-
 /**
  * Uploaded/imported avatar (served by our API) → DiceBear from the user id → initials
- * (spec §14.8). Each step falls back to the next when the image fails to load.
+ * (spec §14.8). Each step falls back to the next when an image fails to load; initials also
+ * show while the DiceBear generator is being loaded.
  */
 export function Avatar({ user, size = 'md', className, alt = '' }: AvatarProps) {
   // Failures are tracked per URL so a newly uploaded avatar gets a fresh chance.
   const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set());
-  const generated = useMemo(() => {
-    try {
-      return generatedAvatarUri(user.id);
-    } catch {
-      return null;
-    }
-  }, [user.id]);
-
-  const candidates: Array<[Source, string | null]> = [
-    ['uploaded', user.avatarUrl],
-    ['generated', generated],
-  ];
-  const current = candidates.find(([, src]) => src && !failed.has(src));
+  const uploaded = user.avatarUrl && !failed.has(user.avatarUrl) ? user.avatarUrl : null;
+  // Only generate the fallback when there is no usable uploaded avatar.
+  const generated = useGeneratedAvatar(uploaded ? null : user.id);
+  const src = uploaded ?? (generated && !failed.has(generated) ? generated : null);
 
   return (
     <span
@@ -50,14 +41,14 @@ export function Avatar({ user, size = 'md', className, alt = '' }: AvatarProps) 
         className,
       )}
     >
-      {current ? (
+      {src ? (
         <img
-          key={current[1]}
-          src={current[1] ?? undefined}
+          key={src}
+          src={src}
           alt={alt}
           className="size-full object-cover"
           draggable={false}
-          onError={() => setFailed((prev) => new Set(prev).add(current[1] ?? ''))}
+          onError={() => setFailed((prev) => new Set(prev).add(src))}
         />
       ) : (
         <span {...(alt ? { role: 'img', 'aria-label': alt } : { 'aria-hidden': true })}>
