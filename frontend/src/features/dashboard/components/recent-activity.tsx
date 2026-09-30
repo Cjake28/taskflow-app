@@ -43,9 +43,18 @@ export function RecentActivity({ className }: { className?: string }) {
           className="py-4"
         />
       ) : (
-        <ol className="-my-[9px]" aria-label="Latest changes, newest first">
+        // Two newspaper-style columns while the card spans the full width (below xl).
+        <ol
+          className="-my-[9px] md:columns-2 md:gap-x-8 xl:columns-1"
+          aria-label="Latest changes, newest first"
+        >
           {query.data.map((activity) => (
-            <ActivityItem key={activity.id} activity={activity} now={now} />
+            <ActivityItem
+              key={activity.id}
+              activity={activity}
+              now={now}
+              className="break-inside-avoid"
+            />
           ))}
         </ol>
       )}
