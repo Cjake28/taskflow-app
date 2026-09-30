@@ -39,10 +39,6 @@ export function FirstRun() {
         aria-hidden="true"
         className="pointer-events-none absolute -top-24 -right-24 -z-10 size-72 rounded-full [--tint:var(--primary)] bg-tint-faint"
       />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-28 -left-20 -z-10 size-64 rounded-full [--tint:var(--primary-2)] bg-tint-faint"
-      />
 
       <div className="mx-auto flex max-w-[520px] flex-col items-center text-center">
         <IconArt icon={ClipboardList} sparkles className="mb-6" />

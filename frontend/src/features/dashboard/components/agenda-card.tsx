@@ -83,7 +83,16 @@ export function AgendaCard({ className }: { className?: string }) {
   return (
     <DashboardCard
       title="Agenda"
-      subtitle={format(selected, isSameYear(selected, now) ? 'EEEE, MMMM d' : 'EEEE, MMMM d, yyyy')}
+      subtitle={
+        <>
+          <span className="sm:hidden">
+            {format(selected, isSameYear(selected, now) ? 'EEE, MMM d' : 'MMM d, yyyy')}
+          </span>
+          <span className="hidden sm:inline">
+            {format(selected, isSameYear(selected, now) ? 'EEEE, MMMM d' : 'EEEE, MMMM d, yyyy')}
+          </span>
+        </>
+      }
       className={className}
       aside={
         <>

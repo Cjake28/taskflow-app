@@ -42,31 +42,31 @@ function headline(stats: DashboardStats | undefined): ReactNode {
 }
 
 /*
- * Layout: at xl the approved two-column dashboard (370px insights column + agenda column).
- * Below xl the column wrappers use `display: contents`, so their cards join one grid and can be
- * reordered: due soon and agenda first, then the insight cards.
+ * Layout: at xl the approved two columns, insights (370px) on the left and the agenda on the right.
+ * The agenda column comes first in the DOM so phones and tablets (where the column wrappers use
+ * `display: contents` and the cards join one grid) show it first, and reading and focus order
+ * follow the visual order there. At xl both wrappers are placed explicitly in row 1.
  */
 const gridClass =
   'grid gap-5 md:grid-cols-2 xl:grid-cols-[minmax(300px,370px)_minmax(0,1fr)] xl:items-start';
-const columnClass = 'contents xl:flex xl:min-w-0 xl:flex-col xl:gap-5';
+const mainColumnClass =
+  'contents xl:col-start-2 xl:row-start-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-5';
+const insightsColumnClass =
+  'contents xl:col-start-1 xl:row-start-1 xl:flex xl:min-w-0 xl:flex-col xl:gap-5';
 
 function DashboardContent({ stats }: { stats: DashboardStats }) {
   return (
     <>
       <StatTiles stats={stats} />
       <div className={gridClass}>
-        <div className={columnClass}>
-          <div className="order-3 xl:order-none">
-            <CompletionCard stats={stats} />
-          </div>
-          <div className="order-4 xl:order-none">
-            <PriorityBreakdown stats={stats} />
-          </div>
-          <RecentActivity className="order-5 md:col-span-2 xl:order-none" />
+        <div className={mainColumnClass}>
+          <AgendaCard className="md:col-span-2" />
+          <DueSoon className="md:col-span-2" />
         </div>
-        <div className={columnClass}>
-          <AgendaCard className="order-2 md:col-span-2 xl:order-none" />
-          <DueSoon className="order-1 md:col-span-2 xl:order-none" />
+        <div className={insightsColumnClass}>
+          <CompletionCard stats={stats} />
+          <PriorityBreakdown stats={stats} />
+          <RecentActivity className="md:col-span-2" />
         </div>
       </div>
     </>
@@ -78,14 +78,12 @@ function DashboardSkeleton() {
     <div role="status" aria-label="Loading your dashboard" className="flex flex-col gap-5">
       <StatTilesSkeleton />
       <div className={gridClass}>
-        <div className={columnClass}>
-          <div className="order-3 xl:order-none">
-            <CompletionCardSkeleton />
-          </div>
-          <Skeleton className="order-4 h-[196px] rounded-card xl:order-none" />
+        <div className={mainColumnClass}>
+          <Skeleton className="h-[420px] rounded-card md:col-span-2" />
         </div>
-        <div className={columnClass}>
-          <Skeleton className="order-1 h-[420px] rounded-card md:col-span-2 xl:order-none" />
+        <div className={insightsColumnClass}>
+          <CompletionCardSkeleton />
+          <Skeleton className="h-[196px] rounded-card" />
         </div>
       </div>
     </div>
@@ -103,12 +101,15 @@ export function DashboardPage() {
         eyebrow={`${greeting()}, ${user.firstName} 👋`}
         title={headline(stats.data)}
         actions={
-          <Button asChild className="hidden sm:inline-flex">
-            <Link to={NEW_TASK_HREF}>
-              <Plus aria-hidden="true" />
-              New task
-            </Link>
-          </Button>
+          // The first-run card carries its own call to action.
+          stats.data?.total === 0 ? null : (
+            <Button asChild className="hidden sm:inline-flex">
+              <Link to={NEW_TASK_HREF}>
+                <Plus aria-hidden="true" />
+                New task
+              </Link>
+            </Button>
+          )
         }
       />
 
