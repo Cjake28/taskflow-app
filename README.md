@@ -63,13 +63,13 @@ It was built for a full-stack developer technical assessment. The required stack
 
 ## Technologies
 
-| Area              | Technologies                                                                                                                                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Frontend          | React 19, TypeScript 6, Vite 8, React Router 8, Tailwind CSS 4, shadcn/ui (Radix), TanStack Query 5, React Hook Form + Zod, date-fns, dnd-kit, lucide-react, sonner                                                                              |
-| Backend           | Node.js 24, Express 5, TypeScript 6, Prisma 7 (PostgreSQL driver adapter), Zod 4, argon2 (argon2id), jose (JWT), BullMQ, ioredis, rate-limiter-flexible, Nodemailer, sharp, multer, AWS SDK v3 (S3/R2), arctic (OAuth), pino, helmet, Swagger UI |
-| Data and services | PostgreSQL 17, Redis 8 (sessions cache, rate limits, job queues), Mailpit (development email inbox), SeaweedFS (optional S3-compatible storage)                                                                                                  |
-| Shared            | `@taskflow/shared` workspace: Zod schemas, constants and DTO types used by both frontend and backend                                                                                                                                             |
-| Quality           | Vitest, Supertest, Testing Library, ESLint 10, Prettier, GitHub Actions workflow                                                                                                                                                                 |
+| Area              | Technologies                                                                                                                                                                                                                                                      |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend          | React 19, TypeScript 6, Vite 8, React Router 8, Tailwind CSS 4, shadcn/ui (Radix), TanStack Query 5, React Hook Form + Zod, date-fns, dnd-kit, lucide-react, sonner                                                                                               |
+| Backend           | Node.js 24, Express 5, TypeScript 6, Prisma 7 (PostgreSQL driver adapter), Zod 4, argon2 (argon2id), jose (JWT and Google ID token verification), BullMQ, ioredis, rate-limiter-flexible, Nodemailer, sharp, multer, AWS SDK v3 (S3/R2), pino, helmet, Swagger UI |
+| Data and services | PostgreSQL 17, Redis 8 (sessions cache, rate limits, job queues), Mailpit (development email inbox), SeaweedFS (optional S3-compatible storage)                                                                                                                   |
+| Shared            | `@taskflow/shared` workspace: Zod schemas, constants and DTO types used by both frontend and backend                                                                                                                                                              |
+| Quality           | Vitest, Supertest, Testing Library, ESLint 10, Prettier, GitHub Actions workflow                                                                                                                                                                                  |
 
 ## Prerequisites
 
@@ -368,7 +368,9 @@ Design decisions and the full schema are documented in [`docs/design-spec.md`](d
 
 ### Google and GitHub sign-in (optional)
 
-- Authorization Code flow with PKCE via `arctic`, with state stored in Redis for single use and bound to a cookie.
+- Authorization Code flow with PKCE (S256), implemented in a small in-house client (`modules/oauth/providers/oauth2.ts`).
+  - The state is stored in Redis for single use and bound to a cookie.
+  - Google's ID token signature, issuer, audience and expiry are verified with `jose` against Google's published keys.
 - Accounts are matched by the provider's account ID, never by email.
 - A new Google/GitHub login never attaches itself to an existing password account with the same email; the user links providers from Profile instead. This prevents pre-account-takeover.
 - Disconnecting the last way to sign in is refused.
@@ -438,6 +440,7 @@ When they are unset, the buttons are hidden and everything else works.
 
 - **Prisma 7.** It moved to a generated client in the source tree, `prisma.config.ts` and driver adapters. Most examples online still use the old setup, so the setup followed the current documentation (global `omit` keeps password hashes out of every query).
 - **Toolchain versions.** TypeScript 7 was released during the project but typescript-eslint doesn't support it yet, so TypeScript is pinned to 6.0.3. MinIO's Docker images are no longer published, so S3 testing uses SeaweedFS. The AWS SDK's new default checksums break some S3-compatible services, so checksums are only sent where required.
+- **A dependency deprecated mid-project.** npm marked the OAuth client library (`arctic`) and its crypto dependencies "no longer supported". The provider interface kept it isolated, so it was replaced by a ~100-line in-house PKCE client. That also added proper signature verification of Google ID tokens.
 - **Sessions that survive refreshes without localStorage tokens.** This needed refresh rotation with a grace window, because parallel tabs refresh at the same time. On the client, a single-flight refresh makes concurrent 401s wait for one refresh instead of racing.
 - **Not leaking account existence.** Forgot password always answers the same way and does the lookup in a background job, so response timing gives nothing away. Login takes the same time for unknown users.
 - **Keeping the database and object storage consistent** without a shared transaction. Writes are ordered, deletes are soft with retention jobs, and a sweep removes orphaned files.
