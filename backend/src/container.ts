@@ -21,6 +21,7 @@ import { SmtpMailTransport, type MailTransport } from './mail/mail.transport';
 import { ActivityService } from './modules/activities/activity.service';
 import { AuthCleanupService } from './modules/auth/auth-cleanup.service';
 import { AuthService } from './modules/auth/auth.service';
+import { EmailVerificationService } from './modules/auth/email-verification.service';
 import { PasswordResetService } from './modules/auth/password-reset.service';
 import { SessionsService } from './modules/auth/sessions.service';
 import { DashboardService } from './modules/dashboard/dashboard.service';
@@ -66,6 +67,7 @@ export interface Container {
   mailTransport: MailTransport;
   accountEmails: AccountEmailsService;
   passwordReset: PasswordResetService;
+  emailVerification: EmailVerificationService;
   authCleanup: AuthCleanupService;
   activities: ActivityService;
   tasks: TasksService;
@@ -108,14 +110,6 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
   const breachChecker =
     overrides.breachChecker ??
     (env.HIBP_ENABLED ? new HibpPasswordChecker(logger) : noopBreachChecker);
-  const users = new UsersService(prisma, sessions, jobs, breachChecker, clock);
-  const auth = new AuthService(
-    prisma,
-    sessions,
-    breachChecker,
-    new LoginThrottle(limiters.loginFailures),
-  );
-
   const mailTransport =
     overrides.mailTransport ??
     new SmtpMailTransport({
@@ -130,6 +124,22 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     frontendUrl: env.FRONTEND_URL,
     resetTtlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
   });
+  const emailVerification = new EmailVerificationService(
+    prisma,
+    jobs,
+    accountEmails,
+    clock,
+    logger,
+    { ttlHours: env.EMAIL_VERIFICATION_TTL_HOURS, frontendUrl: env.FRONTEND_URL },
+  );
+  const users = new UsersService(prisma, sessions, jobs, breachChecker, clock, emailVerification);
+  const auth = new AuthService(
+    prisma,
+    sessions,
+    breachChecker,
+    new LoginThrottle(limiters.loginFailures),
+    emailVerification,
+  );
   const passwordReset = new PasswordResetService(
     prisma,
     jobs,
@@ -179,6 +189,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     passwordReset,
     accountEmails,
     authCleanup,
+    emailVerification,
     storage,
     images,
     avatarImport,
@@ -203,6 +214,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     mailTransport,
     accountEmails,
     passwordReset,
+    emailVerification,
     authCleanup,
     activities,
     tasks,

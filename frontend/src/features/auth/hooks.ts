@@ -5,6 +5,7 @@ import { authApi, type OAuthProviderId } from './api';
 export const authKeys = {
   oauthProviders: ['auth', 'oauth-providers'] as const,
   resetToken: (token: string) => ['auth', 'reset-token', token] as const,
+  verifyEmail: (token: string) => ['auth', 'verify-email', token] as const,
 };
 
 const KNOWN_PROVIDERS: readonly OAuthProviderId[] = ['google', 'github'];

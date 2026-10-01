@@ -41,6 +41,7 @@ describe('GET /api/v1/users/me', () => {
       email: user.email,
       avatarUrl: null,
       hasPassword: true,
+      emailVerified: false,
       createdAt: user.createdAt.toISOString(),
     });
     expect(JSON.stringify(res.body)).not.toContain('argon2');

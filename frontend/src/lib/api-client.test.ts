@@ -23,6 +23,7 @@ const session: SessionPayload = {
     email: 'juan@example.com',
     avatarUrl: null,
     hasPassword: true,
+    emailVerified: true,
     createdAt: '2026-09-29T08:00:00.000Z',
   },
   accessTokenExpiresAt: '2026-10-01T10:15:00.000Z',

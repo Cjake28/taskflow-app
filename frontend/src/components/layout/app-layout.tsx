@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router';
 
+import { VerifyEmailBanner } from '@/features/auth/components/verify-email-banner';
 import { TasksHotkeys } from '@/features/tasks/components/tasks-hotkeys';
 
 import { MobileHeader, MobileTabBar } from './mobile-nav';
@@ -26,6 +27,7 @@ export function AppLayout() {
           tabIndex={-1}
           className="flex flex-1 flex-col gap-5 px-4 pt-5 pb-[calc(7rem+env(safe-area-inset-bottom))] outline-none sm:px-6 lg:px-[34px] lg:pt-[30px] lg:pb-[34px]"
         >
+          <VerifyEmailBanner />
           <Outlet />
         </main>
       </div>

@@ -3,6 +3,7 @@ import { authenticate } from '../../common/middleware/authenticate';
 import type { Container } from '../../container';
 import { AuthController } from './auth.controller';
 import { createAuthRouter } from './auth.routes';
+import { EmailVerificationController } from './email-verification.controller';
 import { PasswordResetController } from './password-reset.controller';
 
 export function authModule(c: Container): Router {
@@ -13,7 +14,11 @@ export function authModule(c: Container): Router {
     c.logger,
   );
   return createAuthRouter(
-    { auth, passwordReset },
+    {
+      auth,
+      passwordReset,
+      emailVerification: new EmailVerificationController(c.emailVerification),
+    },
     { limiters: c.limiters, authenticate: authenticate(c.accessTokens, c.sessions) },
   );
 }

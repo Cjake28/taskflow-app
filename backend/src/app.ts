@@ -7,6 +7,7 @@ import { notFound } from './common/middleware/not-found';
 import { requestContext } from './common/middleware/request-context';
 import { verifyOrigin } from './common/middleware/verify-origin';
 import type { Container } from './container';
+import { docsModule } from './docs/docs.module';
 import { createApiRouter } from './routes';
 
 function parseTrustProxy(value: string): boolean | number | string {
@@ -33,6 +34,7 @@ export function createApp(c: Container): Express {
   });
 
   app.use('/api/v1', createApiRouter(c));
+  if (c.env.API_DOCS_ENABLED) app.use('/api/docs', docsModule());
 
   app.use(notFound);
   app.use(errorHandler);
