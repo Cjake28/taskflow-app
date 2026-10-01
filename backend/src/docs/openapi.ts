@@ -412,8 +412,17 @@ const paths: Record<string, Json> = {
       summary: 'Start sign-in (or linking with mode=link) — browser navigation',
       security: [],
       parameters: [
-        { name: 'provider', in: 'path', required: true, schema: { type: 'string', enum: ['google', 'github'] } },
-        query('mode', { type: 'string', enum: ['login', 'link'] }, 'link = connect to the signed-in user'),
+        {
+          name: 'provider',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', enum: ['google', 'github'] },
+        },
+        query(
+          'mode',
+          { type: 'string', enum: ['login', 'link'] },
+          'link = connect to the signed-in user',
+        ),
       ],
       responses: { 302: { description: 'Redirect to the provider' } },
     },
@@ -424,13 +433,22 @@ const paths: Record<string, Json> = {
       summary: 'Provider callback — redirects back to the web app',
       security: [],
       parameters: [
-        { name: 'provider', in: 'path', required: true, schema: { type: 'string', enum: ['google', 'github'] } },
+        {
+          name: 'provider',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', enum: ['google', 'github'] },
+        },
       ],
       responses: { 302: { description: 'Redirect to /dashboard, /profile or /login?oauthError=' } },
     },
   },
   '/users/me': {
-    get: { tags: ['Account'], summary: 'Current user', responses: { 200: ok(ref('User')), ...errors(401) } },
+    get: {
+      tags: ['Account'],
+      summary: 'Current user',
+      responses: { 200: ok(ref('User')), ...errors(401) },
+    },
     patch: {
       tags: ['Account'],
       summary: 'Update names and username (the email has its own confirmed flow)',
@@ -442,11 +460,15 @@ const paths: Record<string, Json> = {
     get: {
       tags: ['Account'],
       summary: 'The email change waiting for its code, or null',
-      responses: { 200: ok({ anyOf: [ref('PendingEmailChange'), { type: 'null' }] }), ...errors(401) },
+      responses: {
+        200: ok({ anyOf: [ref('PendingEmailChange'), { type: 'null' }] }),
+        ...errors(401),
+      },
     },
     post: {
       tags: ['Account'],
-      summary: 'Start an email change: emails a 6-digit code to the NEW address (nothing changes yet)',
+      summary:
+        'Start an email change: emails a 6-digit code to the NEW address (nothing changes yet)',
       requestBody: body(changeEmailSchema),
       responses: { 202: ok(ref('PendingEmailChange'), 'Code sent'), ...errors(400, 401, 409, 429) },
     },
@@ -486,7 +508,11 @@ const paths: Record<string, Json> = {
       requestBody: multipart('image', 1),
       responses: { 200: ok(ref('User')), ...errors(400, 401, 413, 415) },
     },
-    delete: { tags: ['Account'], summary: 'Remove the profile picture', responses: { 204: noContent, ...errors(401) } },
+    delete: {
+      tags: ['Account'],
+      summary: 'Remove the profile picture',
+      responses: { 204: noContent, ...errors(401) },
+    },
   },
   '/users/me/sessions': {
     get: {
@@ -515,7 +541,12 @@ const paths: Record<string, Json> = {
       tags: ['OAuth'],
       summary: 'Disconnect a provider (not the last way to sign in)',
       parameters: [
-        { name: 'provider', in: 'path', required: true, schema: { type: 'string', enum: ['google', 'github'] } },
+        {
+          name: 'provider',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', enum: ['google', 'github'] },
+        },
       ],
       responses: { 204: noContent, ...errors(400, 401, 404) },
     },
@@ -587,7 +618,10 @@ const paths: Record<string, Json> = {
       summary: 'Upload 1–5 images (JPEG, PNG, WebP, GIF, AVIF; stored as WebP)',
       parameters: [idParam()],
       requestBody: multipart('images', 5),
-      responses: { 201: ok(list(ref('Image')), 'Created'), ...errors(400, 401, 404, 413, 415, 429) },
+      responses: {
+        201: ok(list(ref('Image')), 'Created'),
+        ...errors(400, 401, 404, 413, 415, 429),
+      },
     },
   },
   '/tasks/{id}/images/{imageId}': {
@@ -612,10 +646,17 @@ const paths: Record<string, Json> = {
       summary: 'Image bytes (owner only; ETag revalidation)',
       parameters: [
         idParam(),
-        query('variant', { type: 'string', enum: ['display', 'thumb'], default: 'display' }, 'Size'),
+        query(
+          'variant',
+          { type: 'string', enum: ['display', 'thumb'], default: 'display' },
+          'Size',
+        ),
       ],
       responses: {
-        200: { description: 'WebP image', content: { 'image/webp': { schema: { type: 'string', format: 'binary' } } } },
+        200: {
+          description: 'WebP image',
+          content: { 'image/webp': { schema: { type: 'string', format: 'binary' } } },
+        },
         304: { description: 'Not modified' },
         ...errors(401, 404),
       },
@@ -672,7 +713,9 @@ export function buildOpenApiDocument(): Json {
       ].join('\n\n'),
     },
     servers: [{ url: '/api/v1' }],
-    tags: ['Auth', 'OAuth', 'Account', 'Tasks', 'Images', 'Dashboard', 'System'].map((name) => ({ name })),
+    tags: ['Auth', 'OAuth', 'Account', 'Tasks', 'Images', 'Dashboard', 'System'].map((name) => ({
+      name,
+    })),
     security: [{ cookieAuth: [] }],
     paths,
     components: {

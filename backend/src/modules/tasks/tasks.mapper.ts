@@ -1,4 +1,4 @@
-import type { ImageDto, TaskDetailsDto, TaskDto } from '@taskflow/shared';
+import type { ImageDto, TaskDetailsDto, TaskDto, TaskReminderDto } from '@taskflow/shared';
 import type { TaskPriority, TaskStatus } from '../../generated/prisma/client';
 
 export interface TaskRecord {
@@ -15,9 +15,11 @@ export interface TaskRecord {
   updatedAt: Date;
 }
 
-export interface TaskImageSummary {
+export interface TaskSummary {
   imageCount: number;
   coverImageId: string | null;
+  /** Reminders not sent yet. */
+  reminderCount: number;
 }
 
 export const imageUrl = (imageId: string) => `/api/v1/images/${imageId}`;
@@ -27,7 +29,7 @@ export function isOverdue(task: Pick<TaskRecord, 'dueDate' | 'status'>, now: Dat
   return task.dueDate !== null && task.status !== 'COMPLETED' && task.dueDate < now;
 }
 
-export function toTaskResponse(task: TaskRecord, images: TaskImageSummary, now: Date): TaskDto {
+export function toTaskResponse(task: TaskRecord, summary: TaskSummary, now: Date): TaskDto {
   return {
     id: task.id,
     title: task.title,
@@ -39,8 +41,9 @@ export function toTaskResponse(task: TaskRecord, images: TaskImageSummary, now: 
     completedAt: task.completedAt?.toISOString() ?? null,
     position: task.position,
     isOverdue: isOverdue(task, now),
-    imageCount: images.imageCount,
-    coverThumbUrl: images.coverImageId ? thumbUrl(images.coverImageId) : null,
+    imageCount: summary.imageCount,
+    coverThumbUrl: summary.coverImageId ? thumbUrl(summary.coverImageId) : null,
+    reminderCount: summary.reminderCount,
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
   };
@@ -49,14 +52,20 @@ export function toTaskResponse(task: TaskRecord, images: TaskImageSummary, now: 
 export function toTaskDetailsResponse(
   task: TaskRecord,
   images: ImageDto[],
+  reminders: TaskReminderDto[],
   now: Date,
 ): TaskDetailsDto {
   return {
     ...toTaskResponse(
       task,
-      { imageCount: images.length, coverImageId: images[0]?.id ?? null },
+      {
+        imageCount: images.length,
+        coverImageId: images[0]?.id ?? null,
+        reminderCount: reminders.filter((reminder) => reminder.sentAt === null).length,
+      },
       now,
     ),
     images,
+    reminders,
   };
 }

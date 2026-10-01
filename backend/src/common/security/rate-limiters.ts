@@ -23,6 +23,7 @@ export const LIMITS = {
   upload: { keyPrefix: 'upload-user', points: 30, durationSec: 15 * 60 },
   imageRead: { keyPrefix: 'image-read-user', points: 600, durationSec: 60 },
   api: { keyPrefix: 'api', points: 300, durationSec: 15 * 60 },
+  unsubscribeIp: { keyPrefix: 'unsubscribe-ip', points: 30, durationSec: 15 * 60 },
 } satisfies Record<string, LimiterSpec>;
 
 export type RateLimiters = { [K in keyof typeof LIMITS]: RateLimiterRedis };

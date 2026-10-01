@@ -12,11 +12,19 @@ function originOf(value: string | undefined): string | null {
   }
 }
 
-/** CSRF defense: state-changing requests must come from the frontend's origin. */
-export function verifyOrigin(frontendUrl: string): RequestHandler {
+/**
+ * CSRF defense: state-changing requests must come from the frontend's origin. `exemptPaths` are
+ * endpoints authorised by a token in the request itself (not cookies), e.g. one-click
+ * unsubscribe, which mail providers call from their own servers.
+ */
+export function verifyOrigin(
+  frontendUrl: string,
+  options: { exemptPaths?: readonly string[] } = {},
+): RequestHandler {
   const allowed = new URL(frontendUrl).origin;
+  const exempt = new Set(options.exemptPaths ?? []);
   return (req, _res, next) => {
-    if (SAFE_METHODS.has(req.method)) {
+    if (SAFE_METHODS.has(req.method) || exempt.has(req.path)) {
       next();
       return;
     }

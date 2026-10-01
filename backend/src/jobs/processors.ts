@@ -5,6 +5,10 @@ import type { PasswordResetService } from '../modules/auth/password-reset.servic
 import type { RegistrationService } from '../modules/auth/registration.service';
 import type { AvatarImportService } from '../modules/images/avatar-import.service';
 import type { ImagesService } from '../modules/images/images.service';
+import type { KnownDevicesService } from '../modules/notifications/known-devices.service';
+import type { NotificationEmailsService } from '../modules/notifications/notification-emails.service';
+import type { NotificationScheduler } from '../modules/notifications/notification-scheduler';
+import type { NotificationsService } from '../modules/notifications/notifications.service';
 import type { EmailChangeService } from '../modules/users/email-change.service';
 import type { StorageDriver } from '../storage/storage.driver';
 import type { JobProcessors } from './job-types';
@@ -19,7 +23,16 @@ export interface ProcessorDeps {
   storage: StorageDriver;
   images: ImagesService;
   avatarImport: AvatarImportService;
+  notifications: NotificationsService;
+  notificationScheduler: NotificationScheduler;
+  notificationEmails: NotificationEmailsService;
+  knownDevices: KnownDevicesService;
 }
+
+/** Read notifications are kept this long. */
+const NOTIFICATION_RETENTION_DAYS = 90;
+/** Browsers not seen for this long are forgotten (cookies last at most 400 days anyway). */
+const DEVICE_RETENTION_DAYS = 400;
 
 export function createJobProcessors(deps: ProcessorDeps): JobProcessors {
   return {
@@ -29,6 +42,20 @@ export function createJobProcessors(deps: ProcessorDeps): JobProcessors {
     'email.email-changed': ({ userId, previousEmail }) =>
       deps.accountEmails.sendEmailChanged(userId, previousEmail),
     'email.signup-otp': ({ registrationId }) => deps.registration.sendCode(registrationId),
+    'email.notification': ({ notificationId }) => deps.notificationEmails.send(notificationId),
+    'notifications.tick': async () => {
+      const sent = await deps.notificationScheduler.tick();
+      if (sent.reminders + sent.dueSoon + sent.digests > 0) {
+        deps.logger.info(sent, 'Notifications sent');
+      }
+    },
+    'notifications.cleanup': async () => {
+      const notifications = await deps.notifications.removeOld(NOTIFICATION_RETENTION_DAYS);
+      const devices = await deps.knownDevices.removeStale(DEVICE_RETENTION_DAYS);
+      if (notifications + devices > 0) {
+        deps.logger.info({ notifications, devices }, 'Notification cleanup finished');
+      }
+    },
     'auth.cleanup': async () => {
       const removed = await deps.authCleanup.run();
       deps.logger.info(removed, 'Auth cleanup finished');

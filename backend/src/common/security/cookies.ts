@@ -5,6 +5,10 @@ import type { SignedToken } from '../utils/tokens';
 export const ACCESS_COOKIE = 'tf_access';
 export const REFRESH_COOKIE = 'tf_refresh';
 export const REFRESH_COOKIE_PATH = '/api/v1/auth';
+/** Identifies a browser across sign-ins (only read by the sign-in endpoints under /auth). */
+export const DEVICE_COOKIE = 'tf_device';
+/** Browsers cap cookie lifetimes at 400 days. */
+const DEVICE_COOKIE_MAX_AGE_MS = 400 * 86_400_000;
 
 type CookieEnv = Pick<Env, 'COOKIE_SECURE'>;
 
@@ -44,11 +48,24 @@ export function setRefreshCookie(
 export function setAuthCookies(
   res: Response,
   env: CookieEnv,
-  session: { access: SignedToken; refresh: SignedToken; persistent: boolean },
+  session: {
+    access: SignedToken;
+    refresh: SignedToken;
+    persistent: boolean;
+    deviceToken?: string;
+  },
   now: Date,
 ): void {
   setAccessCookie(res, env, session.access, now);
   setRefreshCookie(res, env, session.refresh, session.persistent, now);
+  if (session.deviceToken) {
+    // Kept after logout on purpose: it is what makes this browser "known" next time.
+    res.cookie(DEVICE_COOKIE, session.deviceToken, {
+      ...baseOptions(env),
+      path: REFRESH_COOKIE_PATH,
+      maxAge: DEVICE_COOKIE_MAX_AGE_MS,
+    });
+  }
 }
 
 export function clearAuthCookies(res: Response, env: CookieEnv): void {

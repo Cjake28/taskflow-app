@@ -15,6 +15,10 @@ export class TestClock implements Clock {
     this.current += ms;
   }
 
+  set(instant: Date): void {
+    this.current = instant.getTime();
+  }
+
   /** Back to real time (called between tests). */
   reset(): void {
     this.current = Date.now();

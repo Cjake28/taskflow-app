@@ -5,6 +5,8 @@ export interface MailMessage {
   subject: string;
   html: string;
   text: string;
+  /** Extra headers, e.g. `List-Unsubscribe`. */
+  headers?: Record<string, string>;
 }
 
 export interface MailTransport {

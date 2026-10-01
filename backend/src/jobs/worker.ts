@@ -4,7 +4,13 @@ import type { Logger } from '../common/utils/logger';
 import { BULL_PREFIX } from './job-queue';
 import { QUEUE_NAMES, type JobName, type JobProcessors, type QueueName } from './job-types';
 
-const CONCURRENCY: Record<QueueName, number> = { email: 5, media: 4, maintenance: 1 };
+const CONCURRENCY: Record<QueueName, number> = {
+  email: 5,
+  media: 4,
+  maintenance: 1,
+  // One tick at a time.
+  notifications: 1,
+};
 
 export interface WorkerHandle {
   close(): Promise<void>;

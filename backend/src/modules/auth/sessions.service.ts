@@ -27,6 +27,14 @@ export interface IssuedSession {
   persistent: boolean;
   access: SignedToken;
   refresh: SignedToken;
+  /** This browser's device token, to store in its device cookie. */
+  deviceToken?: string;
+}
+
+/** Told about every new session (used for "new sign-in" alerts). */
+export interface SignInRecorder {
+  /** Returns the device token the browser should keep. */
+  recordSignIn(userId: string, meta: SessionMeta): Promise<string>;
 }
 
 export type RefreshResult =
@@ -53,6 +61,7 @@ export class SessionsService {
     private readonly clock: Clock,
     private readonly logger: Logger,
     private readonly config: SessionConfig,
+    private readonly signIns?: SignInRecorder,
   ) {}
 
   async create(
@@ -83,7 +92,19 @@ export class SessionsService {
       persistent: options.persistent,
       access,
       refresh: { token: `${session.id}.${secret}`, expiresAt },
+      deviceToken: await this.recordSignIn(userId, options),
     };
+  }
+
+  /** A failing alert must never block signing in. */
+  private async recordSignIn(userId: string, meta: SessionMeta): Promise<string | undefined> {
+    if (!this.signIns) return undefined;
+    try {
+      return await this.signIns.recordSignIn(userId, meta);
+    } catch (err) {
+      this.logger.warn({ err, userId }, 'Could not record the sign-in device');
+      return meta.deviceToken ?? undefined;
+    }
   }
 
   async refresh(rawToken: unknown, meta: SessionMeta): Promise<RefreshResult> {
