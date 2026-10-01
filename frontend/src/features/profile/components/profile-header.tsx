@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useLinkedAccounts } from '../hooks';
 import { memberSince } from '../lib/member-since';
 import { AvatarUploader } from './avatar-uploader';
+import { LogoutButton } from './logout-button';
 import { ProviderLogo } from './provider-logo';
 
 type BadgeTone = 'neutral' | 'success' | 'warning';
@@ -39,7 +40,7 @@ function Badge({
   );
 }
 
-/** Avatar (change/remove), name, handle, email and sign-in badges. */
+/** Avatar (change/remove), name, handle, email, sign-in badges and Log out. */
 export function ProfileHeader({ user }: { user: UserDto }) {
   const accounts = useLinkedAccounts();
   const since = memberSince(user.createdAt);
@@ -86,6 +87,7 @@ export function ProfileHeader({ user }: { user: UserDto }) {
           ) : null}
         </ul>
       </div>
+      <LogoutButton className="sm:ml-auto sm:self-start" />
     </header>
   );
 }
