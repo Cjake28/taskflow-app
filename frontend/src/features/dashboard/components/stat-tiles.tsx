@@ -85,12 +85,18 @@ export function StatTiles({ stats }: { stats: DashboardStats }) {
                 to={statTileHref(tile.kind)}
                 style={{ '--tint': tile.tint } as CSSProperties}
                 className={cn(
-                  'group relative flex h-full flex-col items-center gap-2 rounded-[22px] px-1.5 pt-3.5 pb-3 text-center transition-colors duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:rounded-tile sm:p-4 sm:text-left xl:p-[18px]',
+                  'group relative isolate flex h-full flex-col items-center gap-2 overflow-hidden rounded-[22px] px-1.5 pt-3.5 pb-3 text-center transition-colors duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:rounded-tile sm:p-4 sm:text-left xl:p-[18px]',
                   tile.neutral
                     ? 'bg-tint-faint hover:bg-tint-soft'
                     : 'bg-tint-soft hover:bg-tint-strong',
                 )}
               >
+                {/* The tile's icon, oversized and faint, in the corner (larger screens). */}
+                <Icon
+                  aria-hidden="true"
+                  strokeWidth={1.6}
+                  className="absolute -right-4 -bottom-5 -z-10 hidden size-[104px] -rotate-12 text-(--tint) opacity-10 transition-transform duration-300 group-hover:-rotate-6 motion-reduce:transition-none sm:block"
+                />
                 <span
                   aria-hidden="true"
                   className="grid size-11 place-items-center rounded-full bg-(--tint) text-card sm:size-[46px]"
