@@ -36,6 +36,8 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['./src/test/setup.ts'],
       css: false,
       restoreMocks: true,
+      // Interaction tests type with userEvent, which is slow on busy machines and CI runners.
+      testTimeout: 15_000,
     },
   };
 });
