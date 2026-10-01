@@ -25,6 +25,13 @@ import { PasswordResetService } from './modules/auth/password-reset.service';
 import { RegistrationService } from './modules/auth/registration.service';
 import { SessionsService } from './modules/auth/sessions.service';
 import { DashboardService } from './modules/dashboard/dashboard.service';
+import { KnownDevicesService } from './modules/notifications/known-devices.service';
+import { NotificationEmailsService } from './modules/notifications/notification-emails.service';
+import { NotificationPreferencesService } from './modules/notifications/notification-preferences.service';
+import { NotificationScheduler } from './modules/notifications/notification-scheduler';
+import { NotificationsService } from './modules/notifications/notifications.service';
+import { UnsubscribeTokens } from './modules/notifications/unsubscribe-tokens';
+import { UnsubscribeService } from './modules/notifications/unsubscribe.service';
 import { AvatarImportService } from './modules/images/avatar-import.service';
 import { ImageProcessor } from './modules/images/image-processor';
 import { ImagesService } from './modules/images/images.service';
@@ -78,6 +85,12 @@ export interface Container {
   dashboard: DashboardService;
   avatarImport: AvatarImportService;
   oauth: OAuthService;
+  notificationPreferences: NotificationPreferencesService;
+  notifications: NotificationsService;
+  knownDevices: KnownDevicesService;
+  notificationScheduler: NotificationScheduler;
+  notificationEmails: NotificationEmailsService;
+  unsubscribes: UnsubscribeService;
   processors: JobProcessors;
   /** Starts BullMQ workers and cron schedules in this process. */
   startWorkers(): Promise<void>;
@@ -104,11 +117,22 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     env.ACCESS_TOKEN_TTL_MINUTES,
     clock,
   );
-  const sessions = new SessionsService(prisma, redis, accessTokens, clock, logger, {
-    accessTtlMinutes: env.ACCESS_TOKEN_TTL_MINUTES,
-    refreshTtlDays: env.REFRESH_TOKEN_TTL_DAYS,
-    rememberTtlDays: env.REFRESH_TOKEN_REMEMBER_TTL_DAYS,
-  });
+  const notificationPreferences = new NotificationPreferencesService(prisma);
+  const notifications = new NotificationsService(prisma, notificationPreferences, jobs, clock);
+  const knownDevices = new KnownDevicesService(prisma, notifications, clock);
+  const sessions = new SessionsService(
+    prisma,
+    redis,
+    accessTokens,
+    clock,
+    logger,
+    {
+      accessTtlMinutes: env.ACCESS_TOKEN_TTL_MINUTES,
+      refreshTtlDays: env.REFRESH_TOKEN_TTL_DAYS,
+      rememberTtlDays: env.REFRESH_TOKEN_REMEMBER_TTL_DAYS,
+    },
+    knownDevices,
+  );
   const breachChecker =
     overrides.breachChecker ??
     (env.HIBP_ENABLED ? new HibpPasswordChecker(logger) : noopBreachChecker);
@@ -180,13 +204,29 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
       orphanGraceHours: env.ORPHAN_GRACE_HOURS,
     },
   );
-  const tasks = new TasksService(prisma, activities, clock, {
+  const tasks = new TasksService(prisma, activities, notificationPreferences, clock, {
     // Without a retention window, a deleted task's images are purged right away.
     afterTaskDeleted:
       env.IMAGE_RETENTION_DAYS === 0 ? () => jobs.enqueue('images.purge', {}) : undefined,
   });
 
   const dashboard = new DashboardService(prisma, clock);
+  const notificationScheduler = new NotificationScheduler(
+    prisma,
+    notifications,
+    notificationPreferences,
+    clock,
+  );
+  // A purpose-specific key derived from the server secret.
+  const unsubscribeTokens = new UnsubscribeTokens(`${env.JWT_ACCESS_SECRET}:unsubscribe`);
+  const notificationEmails = new NotificationEmailsService(
+    prisma,
+    mailTransport,
+    notificationPreferences,
+    unsubscribeTokens,
+    { frontendUrl: env.FRONTEND_URL },
+  );
+  const unsubscribes = new UnsubscribeService(prisma, notificationPreferences, unsubscribeTokens);
   const avatarImport = new AvatarImportService(prisma, images, logger, overrides.fetch);
   const oauth = new OAuthService(
     prisma,
@@ -208,6 +248,10 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     storage,
     images,
     avatarImport,
+    notifications,
+    notificationScheduler,
+    notificationEmails,
+    knownDevices,
   });
   if (jobs instanceof InlineJobQueue) jobs.setProcessors(processors);
 
@@ -239,6 +283,12 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     dashboard,
     avatarImport,
     oauth,
+    notificationPreferences,
+    notifications,
+    knownDevices,
+    notificationScheduler,
+    notificationEmails,
+    unsubscribes,
     processors,
     async startWorkers() {
       if (!bullConnection || !(jobs instanceof BullJobQueue) || workers) return;

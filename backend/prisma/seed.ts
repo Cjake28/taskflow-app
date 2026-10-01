@@ -1,7 +1,8 @@
 /**
  * Demo data: `npm run db:seed` (safe to re-run — it replaces the two demo accounts).
  *
- *   demo@taskflow.dev / Demo@12345!   ~24 tasks, activity history, avatar, task images
+ *   demo@taskflow.dev / Demo@12345!   ~24 tasks, activity history, avatar, task images,
+ *                                     reminders and a few notifications
  *   alex@taskflow.dev / Alex@12345!   a few tasks and one image (to try cross-user access)
  *
  * Due dates are relative to "now" in this machine's time zone. Images are
@@ -12,6 +13,7 @@ import sharp from 'sharp';
 import { hashPassword } from '../src/common/utils/password';
 import { createContainer, type Container } from '../src/container';
 import type { Prisma } from '../src/generated/prisma/client';
+import { relativeRemindAt } from '../src/modules/notifications/reminder-timing';
 
 type Status = 'TODO' | 'IN_PROGRESS' | 'COMPLETED';
 type Priority = 'LOW' | 'MEDIUM' | 'HIGH';
@@ -31,7 +33,12 @@ interface SeedTask {
   completedDaysAgo?: number;
   /** Generated images to attach (colour pairs). */
   images?: Array<[string, string]>;
+  /** Reminders: minutes before the due time, or hours from now for a fixed time. */
+  reminders?: Array<{ beforeMinutes?: number; inHours?: number; message?: string }>;
 }
+
+/** This machine's zone, like the due dates; the web app keeps it in sync after sign-in. */
+const TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const DEMO_TASKS: SeedTask[] = [
   {
@@ -260,6 +267,23 @@ const ALEX_TASKS: SeedTask[] = [
 const DAY = 24 * 60 * 60 * 1000;
 const HOUR = 60 * 60 * 1000;
 
+const DEMO_REMINDERS: Record<string, NonNullable<SeedTask['reminders']>> = {
+  'Prepare sprint demo slides': [
+    { beforeMinutes: 60, message: 'Bring the clicker and the HDMI adapter.' },
+    { beforeMinutes: 15 },
+  ],
+  'Book dentist appointment': [{ beforeMinutes: 120, message: 'Call before they close at 7.' }],
+  'Plan customer interview questions': [
+    { beforeMinutes: 1440, message: 'Re-read last quarter’s survey answers first.' },
+    { beforeMinutes: 30 },
+  ],
+  'Draft Q4 OKRs': [
+    { beforeMinutes: 10080 },
+    { inHours: 50, message: 'Ask Lea for the Q3 numbers.' },
+  ],
+  'Collect testimonials for the landing page': [{ beforeMinutes: 60 }],
+};
+
 function dueDateFor(task: SeedTask, now: Date): { dueDate: Date | null; hasDueTime: boolean } {
   if (task.dueInDays === undefined) return { dueDate: null, hasDueTime: false };
   const day = new Date(now);
@@ -428,6 +452,22 @@ async function seedUser(
     }
     await c.prisma.taskActivity.createMany({ data: history });
 
+    for (const reminder of task.reminders ?? []) {
+      const relative = reminder.beforeMinutes !== undefined;
+      await c.prisma.taskReminder.create({
+        data: {
+          taskId: created.id,
+          userId: user.id,
+          offsetMinutes: relative ? reminder.beforeMinutes! : null,
+          remindAt: relative
+            ? relativeRemindAt(reminder.beforeMinutes!, { dueDate, hasDueTime }, TIME_ZONE)
+            : new Date(now.getTime() + reminder.inHours! * HOUR),
+          message: reminder.message ?? null,
+          createdAt,
+        },
+      });
+    }
+
     if (task.images?.length) {
       const uploads = await Promise.all(
         task.images.map(async (colours, index) => ({
@@ -454,6 +494,58 @@ async function seedUser(
   }
 }
 
+/**
+ * A few notifications for the bell, written directly (not through the scheduler) so seeding
+ * never sends real email.
+ */
+async function seedNotifications(c: Container, email: string): Promise<void> {
+  const user = await c.prisma.user.findUniqueOrThrow({ where: { email }, select: { id: true } });
+  await c.prisma.notificationPreference.create({ data: { userId: user.id, timezone: TIME_ZONE } });
+  const now = Date.now();
+  const taskId = async (title: string) =>
+    (await c.prisma.task.findFirst({ where: { userId: user.id, title }, select: { id: true } }))
+      ?.id ?? null;
+
+  const rows: Prisma.NotificationCreateManyInput[] = [
+    {
+      userId: user.id,
+      type: 'NEW_SIGN_IN',
+      title: 'New sign-in from Safari on iOS',
+      body: 'Safari on iOS · IP 203.0.113.24',
+      data: { device: 'Safari on iOS', ip: '203.0.113.24', at: new Date(now - DAY).toISOString() },
+      readAt: new Date(now - 20 * HOUR),
+      createdAt: new Date(now - DAY),
+    },
+    {
+      userId: user.id,
+      type: 'DUE_SOON',
+      title: 'Due soon: Submit Q3 expense report',
+      body: 'Due yesterday (end of day)',
+      taskId: await taskId('Submit Q3 expense report'),
+      readAt: new Date(now - 26 * HOUR),
+      createdAt: new Date(now - 30 * HOUR),
+    },
+    {
+      userId: user.id,
+      type: 'DAILY_DIGEST',
+      title: 'Your day: 3 due today, 3 overdue',
+      body: 'Reply to design review comments · Fix login redirect loop on Safari · Submit Q3 expense report',
+      data: { dueToday: 3, overdue: 3 },
+      createdAt: new Date(now - 3 * HOUR),
+    },
+    {
+      userId: user.id,
+      type: 'TASK_REMINDER',
+      title: 'Reminder: Prepare sprint demo slides',
+      body: 'Bring the clicker and the HDMI adapter.',
+      taskId: await taskId('Prepare sprint demo slides'),
+      createdAt: new Date(now - 25 * 60 * 1000),
+    },
+  ];
+  // UUIDv7 ids follow insertion order, so insert oldest first.
+  for (const row of rows) await c.prisma.notification.create({ data: row });
+}
+
 async function main(): Promise<void> {
   const c = await createContainer({ jobs: 'inline' });
   try {
@@ -466,9 +558,10 @@ async function main(): Promise<void> {
         email: 'demo@taskflow.dev',
         password: 'Demo@12345!',
       },
-      DEMO_TASKS,
+      DEMO_TASKS.map((task) => ({ ...task, reminders: DEMO_REMINDERS[task.title] })),
       ['#8B5CF6', '#5B5BF0'],
     );
+    await seedNotifications(c, 'demo@taskflow.dev');
     await seedUser(
       c,
       {

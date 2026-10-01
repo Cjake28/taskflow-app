@@ -11,9 +11,10 @@ import { Link, useLocation } from 'react-router';
 import { Avatar } from '@/components/common/avatar';
 import { Logo } from '@/components/common/logo';
 import { useCurrentUser } from '@/features/auth/use-auth';
+import { NotificationBell } from '@/features/notifications/components/notification-bell';
 import { cn } from '@/lib/utils';
 
-/** Compact header for phones: logo + avatar (navigation lives in the bottom bar). */
+/** Compact header for phones: logo, notifications and avatar (navigation lives in the bottom bar). */
 export function MobileHeader({ className }: { className?: string }) {
   const user = useCurrentUser();
   return (
@@ -21,9 +22,12 @@ export function MobileHeader({ className }: { className?: string }) {
       <Link to="/dashboard" aria-label="TaskFlow home" className="rounded-xl">
         <Logo />
       </Link>
-      <Link to="/profile" aria-label="Your profile" className="rounded-2xl">
-        <Avatar user={user} size="lg" />
-      </Link>
+      <div className="flex items-center gap-2">
+        <NotificationBell className="size-11 [--bell-ring:var(--background)]" />
+        <Link to="/profile" aria-label="Your profile" className="rounded-2xl">
+          <Avatar user={user} size="lg" />
+        </Link>
+      </div>
     </header>
   );
 }

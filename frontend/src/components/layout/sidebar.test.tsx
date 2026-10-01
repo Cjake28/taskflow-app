@@ -8,6 +8,9 @@ import { AuthContext, type AuthContextValue } from '@/features/auth/auth-context
 import { Sidebar } from './sidebar';
 
 vi.mock('@/features/dashboard/hooks', () => ({ useOpenTaskCount: () => 3 }));
+vi.mock('@/features/notifications/components/notification-bell', () => ({
+  NotificationBell: () => <button type="button">Notifications</button>,
+}));
 
 const user: UserDto = {
   id: 'user-1',

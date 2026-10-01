@@ -29,6 +29,7 @@ function task(id: string, status: TaskStatus, extra: Partial<TaskDto> = {}): Tas
     isOverdue: false,
     imageCount: 0,
     coverThumbUrl: null,
+    reminderCount: 0,
     createdAt: '2026-10-01T00:00:00.000Z',
     updatedAt: '2026-10-01T00:00:00.000Z',
     ...extra,
@@ -127,7 +128,7 @@ describe('setTaskImages', () => {
 
   it('updates the details and the count and cover in lists', () => {
     const { client, all } = seed();
-    const detail: TaskDetailsDto = { ...task('a', 'TODO'), images: [] };
+    const detail: TaskDetailsDto = { ...task('a', 'TODO'), images: [], reminders: [] };
     client.setQueryData(queryKeys.tasks.detail('a'), detail);
 
     setTaskImages(client, 'a', (current) => [

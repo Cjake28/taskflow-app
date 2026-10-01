@@ -27,7 +27,11 @@ export function createApp(c: Container): Express {
   app.use(cors({ origin: c.env.FRONTEND_URL, credentials: true }));
   app.use(express.json({ limit: '10kb' }));
   app.use(cookieParser());
-  app.use(verifyOrigin(c.env.FRONTEND_URL));
+  app.use(
+    verifyOrigin(c.env.FRONTEND_URL, {
+      exemptPaths: ['/api/v1/notifications/unsubscribe/one-click'],
+    }),
+  );
   app.use((req, _res, next) => {
     req.valid = {};
     next();

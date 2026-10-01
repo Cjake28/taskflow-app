@@ -5,6 +5,7 @@ import {
   createTaskSchema,
   type CreateTaskInput,
   type TaskDto,
+  type TaskReminderDto,
   type TaskStatus,
   type UpdateTaskInput,
 } from '@taskflow/shared';
@@ -13,10 +14,19 @@ import { z } from 'zod';
 
 import { fromDueDate, toDueDateIso } from '@/lib/due-date';
 
+import {
+  checkReminders,
+  reminderFormSchema,
+  remindersSignature,
+  toReminderFormValue,
+  toReminderInput,
+} from './reminders';
+
 /*
  * Frontend-only form shape (spec §14.7): the due date is split into a local date and an optional
  * time. `toCreateInput` / `toUpdateInput` turn it into the shared API payloads: a date without a
  * time means the end of that local day, and on edit only changed fields are sent (null clears).
+ * Reminders are sent as a whole list, and only when they changed.
  */
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -38,20 +48,24 @@ export const taskFormSchema = z
     dueTime: z
       .string()
       .refine((value) => value === '' || TIME_PATTERN.test(value), 'Enter a valid time'),
+    reminders: z.array(reminderFormSchema).default([]),
   })
   .refine((values) => values.dueTime === '' || values.dueDate !== '', {
     path: ['dueDate'],
     message: 'Pick a date for this time',
-  });
+  })
+  .superRefine((values, ctx) => checkReminders(values.reminders, ctx));
 
 export type TaskFormInput = z.input<typeof taskFormSchema>;
 export type TaskFormValues = z.output<typeof taskFormSchema>;
 
+type EditableTask = Pick<
+  TaskDto,
+  'title' | 'description' | 'status' | 'priority' | 'dueDate' | 'hasDueTime'
+> & { reminders?: TaskReminderDto[] };
+
 export function toFormValues(
-  task?: Pick<
-    TaskDto,
-    'title' | 'description' | 'status' | 'priority' | 'dueDate' | 'hasDueTime'
-  > | null,
+  task?: EditableTask | null,
   defaults: { status?: TaskStatus; dueDate?: string } = {},
 ): TaskFormInput {
   const due = task ? fromDueDate(task.dueDate, task.hasDueTime) : null;
@@ -62,6 +76,7 @@ export function toFormValues(
     priority: task?.priority ?? 'MEDIUM',
     dueDate: due?.date ?? defaults.dueDate ?? '',
     dueTime: due?.time ?? '',
+    reminders: (task?.reminders ?? []).map(toReminderFormValue),
   };
 }
 
@@ -86,16 +101,14 @@ export function toCreateInput(values: TaskFormValues): CreateTaskInput {
     input.dueDate = due.dueDate;
     input.hasDueTime = due.hasDueTime;
   }
+  if (values.reminders.length > 0) input.reminders = values.reminders.map(toReminderInput);
   return input;
 }
 
 const minuteOf = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
 
 /** Only the fields that changed; `null` clears the description or due date. Null = no changes. */
-export function toUpdateInput(
-  values: TaskFormValues,
-  task: Pick<TaskDto, 'title' | 'description' | 'status' | 'priority' | 'dueDate' | 'hasDueTime'>,
-): UpdateTaskInput | null {
+export function toUpdateInput(values: TaskFormValues, task: EditableTask): UpdateTaskInput | null {
   const input: UpdateTaskInput = {};
 
   const title = values.title.trim();
@@ -118,6 +131,10 @@ export function toUpdateInput(
     input.dueDate = due.dueDate;
     if (due.dueDate) input.hasDueTime = due.hasDueTime;
   }
+
+  const reminders = values.reminders.map(toReminderInput);
+  const saved = (task.reminders ?? []).map(toReminderFormValue).map(toReminderInput);
+  if (remindersSignature(reminders) !== remindersSignature(saved)) input.reminders = reminders;
 
   return Object.keys(input).length > 0 ? input : null;
 }

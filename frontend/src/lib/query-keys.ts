@@ -30,6 +30,16 @@ export const queryKeys = {
     linkedAccounts: () => ['account', 'linked-accounts'] as const,
     emailChange: () => ['account', 'email-change'] as const,
   },
+  notifications: {
+    all: ['notifications'] as const,
+    /** The bell's feed; `filter` is `all` or `unread`. */
+    feed: (filter: 'all' | 'unread') => ['notifications', 'feed', filter] as const,
+    feeds: () => ['notifications', 'feed'] as const,
+    unreadCount: () => ['notifications', 'unread-count'] as const,
+    preferences: () => ['notifications', 'preferences'] as const,
+    /** Result of an email's one-time unsubscribe link (public page). */
+    unsubscribe: (token: string) => ['notifications', 'unsubscribe', token] as const,
+  },
 };
 
 /** Call after any task, image or status change: lists, details, stats and activity all depend on it. */
@@ -38,5 +48,7 @@ export function invalidateTaskData(queryClient: QueryClient): Promise<unknown> {
     queryClient.invalidateQueries({ queryKey: queryKeys.tasks.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
     queryClient.invalidateQueries({ queryKey: queryKeys.activities.all }),
+    // Notifications link to tasks (a deleted task's notifications lose their link).
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications.feeds() }),
   ]);
 }

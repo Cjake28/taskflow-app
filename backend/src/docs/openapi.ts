@@ -4,10 +4,13 @@ import {
   createTaskSchema,
   forgotPasswordSchema,
   loginSchema,
+  markNotificationsReadSchema,
   moveTaskSchema,
   registerSchema,
   resendRegistrationSchema,
   resetPasswordSchema,
+  unsubscribeSchema,
+  updateNotificationPreferencesSchema,
   updateProfileSchema,
   updateTaskSchema,
   verifyEmailChangeSchema,
@@ -180,12 +183,72 @@ const schemas: Record<string, Json> = {
       isOverdue: { type: 'boolean' },
       imageCount: { type: 'integer' },
       coverThumbUrl: { type: ['string', 'null'] },
+      reminderCount: { type: 'integer', description: 'Reminders not sent yet' },
       createdAt: DATE_TIME,
       updatedAt: DATE_TIME,
     },
   },
   TaskDetails: {
-    allOf: [ref('Task'), { type: 'object', properties: { images: list(ref('Image')) } }],
+    allOf: [
+      ref('Task'),
+      {
+        type: 'object',
+        properties: { images: list(ref('Image')), reminders: list(ref('TaskReminder')) },
+      },
+    ],
+  },
+  TaskReminder: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', format: 'uuid' },
+      kind: { type: 'string', enum: ['relative', 'absolute'] },
+      offsetMinutes: {
+        type: ['integer', 'null'],
+        description: 'Minutes before the due time (relative only)',
+      },
+      remindAt: { ...NULLABLE_DATE_TIME, description: 'Null while waiting for a due date' },
+      message: { type: ['string', 'null'] },
+      sentAt: NULLABLE_DATE_TIME,
+      status: { type: 'string', enum: ['scheduled', 'sent', 'needs-due-date', 'paused', 'missed'] },
+    },
+  },
+  Notification: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', format: 'uuid' },
+      type: { type: 'string', enum: ['TASK_REMINDER', 'DUE_SOON', 'DAILY_DIGEST', 'NEW_SIGN_IN'] },
+      title: { type: 'string' },
+      body: { type: ['string', 'null'] },
+      taskId: { type: ['string', 'null'], format: 'uuid' },
+      data: { type: ['object', 'null'], description: 'Details by type' },
+      readAt: NULLABLE_DATE_TIME,
+      createdAt: DATE_TIME,
+    },
+  },
+  NotificationChannels: {
+    type: 'object',
+    properties: { inApp: { type: 'boolean' }, email: { type: 'boolean' } },
+  },
+  NotificationPreferences: {
+    type: 'object',
+    properties: {
+      timezone: { type: 'string', example: 'Asia/Manila' },
+      timezoneAuto: { type: 'boolean' },
+      taskReminder: ref('NotificationChannels'),
+      dueSoon: {
+        allOf: [
+          ref('NotificationChannels'),
+          { type: 'object', properties: { leadMinutes: { type: 'integer' } } },
+        ],
+      },
+      dailyDigest: {
+        allOf: [
+          ref('NotificationChannels'),
+          { type: 'object', properties: { time: { type: 'string', example: '08:00' } } },
+        ],
+      },
+      newSignIn: ref('NotificationChannels'),
+    },
   },
   Activity: {
     type: 'object',
@@ -412,8 +475,17 @@ const paths: Record<string, Json> = {
       summary: 'Start sign-in (or linking with mode=link) — browser navigation',
       security: [],
       parameters: [
-        { name: 'provider', in: 'path', required: true, schema: { type: 'string', enum: ['google', 'github'] } },
-        query('mode', { type: 'string', enum: ['login', 'link'] }, 'link = connect to the signed-in user'),
+        {
+          name: 'provider',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', enum: ['google', 'github'] },
+        },
+        query(
+          'mode',
+          { type: 'string', enum: ['login', 'link'] },
+          'link = connect to the signed-in user',
+        ),
       ],
       responses: { 302: { description: 'Redirect to the provider' } },
     },
@@ -424,13 +496,22 @@ const paths: Record<string, Json> = {
       summary: 'Provider callback — redirects back to the web app',
       security: [],
       parameters: [
-        { name: 'provider', in: 'path', required: true, schema: { type: 'string', enum: ['google', 'github'] } },
+        {
+          name: 'provider',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', enum: ['google', 'github'] },
+        },
       ],
       responses: { 302: { description: 'Redirect to /dashboard, /profile or /login?oauthError=' } },
     },
   },
   '/users/me': {
-    get: { tags: ['Account'], summary: 'Current user', responses: { 200: ok(ref('User')), ...errors(401) } },
+    get: {
+      tags: ['Account'],
+      summary: 'Current user',
+      responses: { 200: ok(ref('User')), ...errors(401) },
+    },
     patch: {
       tags: ['Account'],
       summary: 'Update names and username (the email has its own confirmed flow)',
@@ -442,11 +523,15 @@ const paths: Record<string, Json> = {
     get: {
       tags: ['Account'],
       summary: 'The email change waiting for its code, or null',
-      responses: { 200: ok({ anyOf: [ref('PendingEmailChange'), { type: 'null' }] }), ...errors(401) },
+      responses: {
+        200: ok({ anyOf: [ref('PendingEmailChange'), { type: 'null' }] }),
+        ...errors(401),
+      },
     },
     post: {
       tags: ['Account'],
-      summary: 'Start an email change: emails a 6-digit code to the NEW address (nothing changes yet)',
+      summary:
+        'Start an email change: emails a 6-digit code to the NEW address (nothing changes yet)',
       requestBody: body(changeEmailSchema),
       responses: { 202: ok(ref('PendingEmailChange'), 'Code sent'), ...errors(400, 401, 409, 429) },
     },
@@ -486,7 +571,11 @@ const paths: Record<string, Json> = {
       requestBody: multipart('image', 1),
       responses: { 200: ok(ref('User')), ...errors(400, 401, 413, 415) },
     },
-    delete: { tags: ['Account'], summary: 'Remove the profile picture', responses: { 204: noContent, ...errors(401) } },
+    delete: {
+      tags: ['Account'],
+      summary: 'Remove the profile picture',
+      responses: { 204: noContent, ...errors(401) },
+    },
   },
   '/users/me/sessions': {
     get: {
@@ -515,7 +604,12 @@ const paths: Record<string, Json> = {
       tags: ['OAuth'],
       summary: 'Disconnect a provider (not the last way to sign in)',
       parameters: [
-        { name: 'provider', in: 'path', required: true, schema: { type: 'string', enum: ['google', 'github'] } },
+        {
+          name: 'provider',
+          in: 'path',
+          required: true,
+          schema: { type: 'string', enum: ['google', 'github'] },
+        },
       ],
       responses: { 204: noContent, ...errors(400, 401, 404) },
     },
@@ -587,7 +681,10 @@ const paths: Record<string, Json> = {
       summary: 'Upload 1–5 images (JPEG, PNG, WebP, GIF, AVIF; stored as WebP)',
       parameters: [idParam()],
       requestBody: multipart('images', 5),
-      responses: { 201: ok(list(ref('Image')), 'Created'), ...errors(400, 401, 404, 413, 415, 429) },
+      responses: {
+        201: ok(list(ref('Image')), 'Created'),
+        ...errors(400, 401, 404, 413, 415, 429),
+      },
     },
   },
   '/tasks/{id}/images/{imageId}': {
@@ -612,10 +709,17 @@ const paths: Record<string, Json> = {
       summary: 'Image bytes (owner only; ETag revalidation)',
       parameters: [
         idParam(),
-        query('variant', { type: 'string', enum: ['display', 'thumb'], default: 'display' }, 'Size'),
+        query(
+          'variant',
+          { type: 'string', enum: ['display', 'thumb'], default: 'display' },
+          'Size',
+        ),
       ],
       responses: {
-        200: { description: 'WebP image', content: { 'image/webp': { schema: { type: 'string', format: 'binary' } } } },
+        200: {
+          description: 'WebP image',
+          content: { 'image/webp': { schema: { type: 'string', format: 'binary' } } },
+        },
         304: { description: 'Not modified' },
         ...errors(401, 404),
       },
@@ -656,6 +760,99 @@ const paths: Record<string, Json> = {
       },
     },
   },
+  '/notifications': {
+    get: {
+      tags: ['Notifications'],
+      summary: 'In-app notifications, newest first (cursor pagination)',
+      parameters: [
+        query('cursor', { type: 'string', format: 'uuid' }, 'The last id of the previous page'),
+        query('limit', { type: 'integer', minimum: 1, maximum: 50, default: 20 }, 'Page size'),
+        query('unread', { type: 'string', enum: ['true', 'false'] }, 'Only unread ones'),
+      ],
+      responses: {
+        200: {
+          description: 'OK',
+          content: json({
+            type: 'object',
+            properties: {
+              data: list(ref('Notification')),
+              meta: {
+                type: 'object',
+                properties: {
+                  nextCursor: { type: ['string', 'null'] },
+                  unreadCount: { type: 'integer' },
+                },
+              },
+            },
+          }),
+        },
+        ...errors(400, 401),
+      },
+    },
+  },
+  '/notifications/unread-count': {
+    get: {
+      tags: ['Notifications'],
+      summary: 'Unread count for the bell',
+      responses: {
+        200: ok({ type: 'object', properties: { count: { type: 'integer' } } }),
+        ...errors(401),
+      },
+    },
+  },
+  '/notifications/read': {
+    post: {
+      tags: ['Notifications'],
+      summary: 'Mark notifications as read (all of them when `ids` is left out)',
+      requestBody: body(markNotificationsReadSchema),
+      responses: {
+        200: ok({ type: 'object', properties: { unreadCount: { type: 'integer' } } }),
+        ...errors(400, 401),
+      },
+    },
+  },
+  '/notifications/preferences': {
+    get: {
+      tags: ['Notifications'],
+      summary: 'Notification settings (defaults until changed)',
+      responses: { 200: ok(ref('NotificationPreferences')), ...errors(401) },
+    },
+    patch: {
+      tags: ['Notifications'],
+      summary: 'Change any subset of the notification settings',
+      requestBody: body(updateNotificationPreferencesSchema),
+      responses: { 200: ok(ref('NotificationPreferences')), ...errors(400, 401) },
+    },
+  },
+  '/notifications/unsubscribe': {
+    post: {
+      tags: ['Notifications'],
+      summary: 'Turn off one type of email with the signed token from its unsubscribe link',
+      security: [],
+      requestBody: body(unsubscribeSchema),
+      responses: {
+        200: ok({
+          type: 'object',
+          properties: {
+            type: { type: 'string' },
+            email: { type: 'string', example: 'j***@example.com' },
+          },
+        }),
+        ...errors(400, 429),
+      },
+    },
+  },
+  '/notifications/unsubscribe/one-click': {
+    post: {
+      tags: ['Notifications'],
+      summary: 'RFC 8058 one-click unsubscribe (the List-Unsubscribe URL in emails)',
+      description:
+        'Called by mail providers, so it skips the origin check; the signed token authorises it.',
+      security: [],
+      parameters: [{ name: 'token', in: 'query', required: true, schema: { type: 'string' } }],
+      responses: { 200: ok({ type: 'object' }), ...errors(400, 429) },
+    },
+  },
 };
 
 export function buildOpenApiDocument(): Json {
@@ -672,7 +869,18 @@ export function buildOpenApiDocument(): Json {
       ].join('\n\n'),
     },
     servers: [{ url: '/api/v1' }],
-    tags: ['Auth', 'OAuth', 'Account', 'Tasks', 'Images', 'Dashboard', 'System'].map((name) => ({ name })),
+    tags: [
+      'Auth',
+      'OAuth',
+      'Account',
+      'Tasks',
+      'Images',
+      'Dashboard',
+      'Notifications',
+      'System',
+    ].map((name) => ({
+      name,
+    })),
     security: [{ cookieAuth: [] }],
     paths,
     components: {

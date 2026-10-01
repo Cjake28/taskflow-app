@@ -10,10 +10,18 @@ interface LayoutOptions {
   preheader: string;
   heading: string;
   paragraphs: string[];
+  /** The user's own words (e.g. a reminder message), set apart under the paragraphs. */
+  quote?: string;
+  /** Label/value rows, e.g. a task's due date and status. */
+  details?: Array<{ label: string; value: string }>;
+  /** Linked rows, e.g. the tasks in a daily summary. */
+  items?: Array<{ title: string; meta: string; url: string; urgent?: boolean }>;
   button?: { label: string; url: string };
   /** A one-time code shown large, between the paragraphs and the footnote. */
   code?: string;
   footnote?: string;
+  /** Replaces the generic footer for optional notifications. */
+  unsubscribe?: { reason: string; url: string; settingsUrl: string };
 }
 
 /**
@@ -27,6 +35,32 @@ export function renderEmail(options: LayoutOptions): string {
         `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#4A4E6A;">${escapeHtml(text)}</p>`,
     )
     .join('');
+
+  const quote = options.quote
+    ? `<p style="margin:0 0 18px;padding:12px 16px;font-size:15px;line-height:1.6;color:#1B1C3A;background:#F0F1F9;border-radius:10px;white-space:pre-line;">${escapeHtml(options.quote)}</p>`
+    : '';
+
+  const details = options.details?.length
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 20px;border-top:1px solid #E3E5F0;">${options.details
+        .map(
+          (row) =>
+            `<tr><td style="padding:9px 0;border-bottom:1px solid #E3E5F0;font-size:13.5px;color:#858AA6;width:38%;">${escapeHtml(row.label)}</td><td style="padding:9px 0;border-bottom:1px solid #E3E5F0;font-size:14px;font-weight:700;color:#1B1C3A;">${escapeHtml(row.value)}</td></tr>`,
+        )
+        .join('')}</table>`
+    : '';
+
+  const items = options.items?.length
+    ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 20px;border-top:1px solid #E3E5F0;">${options.items
+        .map(
+          (item) =>
+            `<tr><td style="padding:10px 0;border-bottom:1px solid #E3E5F0;"><a href="${escapeHtml(item.url)}" style="font-size:14.5px;font-weight:700;color:#1B1C3A;text-decoration:none;">${escapeHtml(item.title)}</a><div style="margin-top:2px;font-size:13px;color:${item.urgent ? '#D6334F' : '#858AA6'};">${escapeHtml(item.meta)}</div></td></tr>`,
+        )
+        .join('')}</table>`
+    : '';
+
+  const footer = options.unsubscribe
+    ? `${escapeHtml(options.unsubscribe.reason)} <a href="${escapeHtml(options.unsubscribe.url)}" style="color:#858AA6;">Unsubscribe</a> · <a href="${escapeHtml(options.unsubscribe.settingsUrl)}" style="color:#858AA6;">Notification settings</a>`
+    : 'You received this email because of activity on your TaskFlow account.';
 
   const button = options.button
     ? `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:8px 0 22px;"><tr><td style="border-radius:12px;background:#5B5BF0;">
@@ -57,12 +91,15 @@ export function renderEmail(options: LayoutOptions): string {
 </tr></table>
 <h1 style="margin:0 0 12px;font-size:21px;line-height:1.3;color:#1B1C3A;">${escapeHtml(options.heading)}</h1>
 ${paragraphs}
+${quote}
+${details}
+${items}
 ${code}
 ${button}
 ${footnote}
 </td></tr>
 </table>
-<p style="margin:18px 0 0;font-size:12px;color:#858AA6;">You received this email because of activity on your TaskFlow account.</p>
+<p style="margin:18px 0 0;font-size:12px;line-height:1.6;color:#858AA6;">${footer}</p>
 </td></tr>
 </table>
 </body>

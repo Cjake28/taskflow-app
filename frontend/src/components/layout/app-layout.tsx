@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router';
 
+import { useTimeZoneAutoSync } from '@/features/notifications/hooks';
 import { TasksHotkeys } from '@/features/tasks/components/tasks-hotkeys';
 
 import { MobileHeader, MobileTabBar } from './mobile-nav';
@@ -10,6 +11,7 @@ import { Sidebar } from './sidebar';
  * Phones and tablets: compact header + bottom tab bar.
  */
 export function AppLayout() {
+  useTimeZoneAutoSync();
   return (
     <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[250px_minmax(0,1fr)]">
       <a

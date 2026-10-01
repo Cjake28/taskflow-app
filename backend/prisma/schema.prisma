@@ -48,6 +48,15 @@ enum OAuthProvider {
   @@map("oauth_provider")
 }
 
+enum NotificationType {
+  TASK_REMINDER
+  DUE_SOON
+  DAILY_DIGEST
+  NEW_SIGN_IN
+
+  @@map("notification_type")
+}
+
 enum ImageKind {
   AVATAR
   TASK
@@ -67,13 +76,17 @@ model User {
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  avatarImage   Image?              @relation("UserAvatar", fields: [avatarImageId], references: [id], onDelete: SetNull)
-  images        Image[]             @relation("UserImages")
-  tasks         Task[]
-  sessions      Session[]
-  tokens        VerificationToken[]
-  activities    TaskActivity[]
-  oauthAccounts OAuthAccount[]
+  avatarImage            Image?                  @relation("UserAvatar", fields: [avatarImageId], references: [id], onDelete: SetNull)
+  images                 Image[]                 @relation("UserImages")
+  tasks                  Task[]
+  sessions               Session[]
+  tokens                 VerificationToken[]
+  activities             TaskActivity[]
+  oauthAccounts          OAuthAccount[]
+  reminders              TaskReminder[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+  knownDevices           KnownDevice[]
 
   @@map("users")
 }
@@ -143,9 +156,11 @@ model Task {
   createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activities TaskActivity[]
-  images     Image[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activities    TaskActivity[]
+  images        Image[]
+  reminders     TaskReminder[]
+  notifications Notification[]
 
   @@index([userId, status, position])
   @@index([userId, dueDate])
@@ -192,4 +207,90 @@ model TaskActivity {
   @@index([userId, createdAt])
   @@index([taskId, createdAt])
   @@map("task_activities")
+}
+
+/// A reminder the user set on a task. Relative reminders count back from the due time and
+/// follow it when the due date changes; absolute ones fire at a fixed moment.
+model TaskReminder {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  taskId        String    @map("task_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  /// Minutes before the due time; null for a reminder at a fixed moment.
+  offsetMinutes Int?      @map("offset_minutes")
+  /// When it fires. Null while a relative reminder's task has no due date.
+  remindAt      DateTime? @map("remind_at") @db.Timestamptz(3)
+  message       String?   @db.VarChar(500)
+  sentAt        DateTime? @map("sent_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([sentAt, remindAt])
+  @@map("task_reminders")
+}
+
+/// Something that happened for a user: shown in the in-app feed and, by preference, emailed.
+model Notification {
+  id        String           @id @default(uuid(7)) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(255)
+  body      String?          @db.Text
+  taskId    String?          @map("task_id") @db.Uuid
+  data      Json?
+  /// False when in-app notifications of this type are off (the row still de-duplicates).
+  inApp     Boolean          @default(true) @map("in_app")
+  /// Makes scheduled notifications idempotent, e.g. `due-soon:<taskId>:<dueAt>`.
+  dedupeKey String?          @map("dedupe_key") @db.VarChar(160)
+  readAt    DateTime?        @map("read_at") @db.Timestamptz(3)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, inApp, id])
+  @@map("notifications")
+}
+
+/// Per-user notification settings. A missing row means the defaults below.
+model NotificationPreference {
+  userId             String   @id @map("user_id") @db.Uuid
+  timezone           String   @default("UTC") @db.VarChar(64)
+  timezoneAuto       Boolean  @default(true) @map("timezone_auto")
+  taskReminderInApp  Boolean  @default(true) @map("task_reminder_in_app")
+  taskReminderEmail  Boolean  @default(true) @map("task_reminder_email")
+  dueSoonInApp       Boolean  @default(true) @map("due_soon_in_app")
+  dueSoonEmail       Boolean  @default(true) @map("due_soon_email")
+  dueSoonLeadMinutes Int      @default(60) @map("due_soon_lead_minutes")
+  dailyDigestInApp   Boolean  @default(true) @map("daily_digest_in_app")
+  dailyDigestEmail   Boolean  @default(true) @map("daily_digest_email")
+  dailyDigestTime    String   @default("08:00") @map("daily_digest_time") @db.Char(5)
+  /// The user's local date (yyyy-MM-dd) of the last daily summary, so it goes out once a day.
+  lastDigestOn       String?  @map("last_digest_on") @db.Char(10)
+  newSignInInApp     Boolean  @default(true) @map("new_sign_in_in_app")
+  newSignInEmail     Boolean  @default(true) @map("new_sign_in_email")
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+/// Browsers a user has signed in from, recognised by a long-lived random cookie (stored hashed).
+model KnownDevice {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  tokenHash   String   @map("token_hash") @db.Char(64)
+  label       String   @db.VarChar(120)
+  lastIp      String?  @map("last_ip") @db.Inet
+  firstSeenAt DateTime @default(now()) @map("first_seen_at") @db.Timestamptz(3)
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tokenHash])
+  @@map("known_devices")
 }

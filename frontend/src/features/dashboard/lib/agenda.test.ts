@@ -31,6 +31,7 @@ function task(overrides: Partial<TaskDto>): TaskDto {
     isOverdue: false,
     imageCount: 0,
     coverThumbUrl: null,
+    reminderCount: 0,
     createdAt: local(1, 8).toISOString(),
     updatedAt: local(1, 8).toISOString(),
     ...overrides,

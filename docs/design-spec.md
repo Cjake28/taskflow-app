@@ -1201,8 +1201,11 @@ src/jobs/
 | `maintenance` | `images.purge` | Daily 03:00 | Enforces `IMAGE_RETENTION_DAYS` | Next run |
 | `maintenance` | `storage.orphan-sweep` | Daily 03:30 | Removes objects left behind by crashes | Next run |
 | `maintenance` | `auth.cleanup` | Daily 04:00 | Deletes revoked/expired sessions and used/expired tokens older than 30 days | Next run |
+| `email` | `email.notification` | A notification with email on | Renders by type, re-checks the setting, adds unsubscribe headers | 5 × exponential |
+| `notifications` | `notifications.tick` | Every minute | Sends due reminders, "due soon" and daily summaries (§11.4) | Next tick |
+| `maintenance` | `notifications.cleanup` | Daily 04:15 | Deletes read notifications after 90 days and devices unseen for 400 days | Next run |
 
-Concurrency: `email` 5, `media` 4, `maintenance` 1. Completed jobs are removed; failed jobs are kept for 1 hour (email job payloads may contain a reset link, which expires after 30 minutes anyway).
+Concurrency: `email` 5, `media` 4, `maintenance` 1, `notifications` 1 (its own queue, so a long maintenance job never delays the tick). Completed jobs are removed; failed jobs are kept for 1 hour (email job payloads may contain a reset link, which expires after 30 minutes anyway).
 
 ### 11.3 Email delivery
 
@@ -1218,6 +1221,57 @@ Concurrency: `email` 5, `media` 4, `maintenance` 1. Completed jobs are removed; 
 |---|---|
 | Password reset | Greeting, "Reset password" button, 30-minute expiry, single-use notice, "ignore if you didn't request this" |
 | Password changed | Notice that the password changed and other devices were signed out; what to do if it wasn't them |
+| Task reminder | The user's own message (if any), due date, status, "Open the task" |
+| Due soon | Due date and status, "Open the task" |
+| Daily summary | Counts due today and overdue, up to 5 linked tasks (overdue in red), "Open your dashboard" |
+| New sign-in | Device, IP, time, "Review your sessions"; what to do if it wasn't them |
+
+Notification emails end with the reason they were sent, an **Unsubscribe** link and a link to the settings, and carry `List-Unsubscribe` / `List-Unsubscribe-Post` headers (RFC 8058 one-click).
+
+### 11.4 Notifications and reminders
+
+**Data model** (migration `notifications`):
+
+| Table | Purpose |
+|---|---|
+| `task_reminders` | `offset_minutes` (before the due time; null for a fixed time), `remind_at` (null while a relative reminder has no due date), `message` (≤ 500), `sent_at`. Check constraints: a fixed reminder has a time; offsets are ≥ 0. Up to 5 per task (validated by the shared schema). |
+| `notifications` | One row per event: `type`, `title`, `body`, optional `task_id` (SET NULL on delete), `data` (JSON by type), `in_app`, `read_at`, and `dedupe_key` with a unique `(user_id, dedupe_key)`. |
+| `notification_preferences` | 1–1 with users, created on first change: in-app and email flags per type, `due_soon_lead_minutes`, `daily_digest_time` (`HH:mm`), `timezone` + `timezone_auto`, and `last_digest_on` (the local date of the last summary). |
+| `known_devices` | Hash of each browser's `tf_device` cookie, a label ("Chrome on Windows"), last IP and when it was first and last seen. |
+
+**Timing rules.**
+
+- Relative reminders count back from the due time. A date-only task ("end of day") counts back from **09:00 on its due date in the user's time zone**, so "1 day before" is the day before at 9:00.
+- Changing the due date moves relative reminders and re-arms them. Clearing it parks them as "needs a due date".
+- Saving a task replaces its reminder set. A reminder that keeps its `id` and timing keeps `sent_at`, so editing a task never re-sends it. A new or changed fixed-time reminder must be in the future (400 on `reminders.<i>.remindAt`).
+- Status shown to the user: `scheduled`, `sent`, `needs-due-date`, `paused` (the task is completed), `missed` (more than an hour late and never sent).
+- Time zones are handled with small `Intl`-based helpers (`common/utils/zoned-time.ts`): the local date and time of an instant, and the instant of a local date and time. A time skipped by a daylight-saving jump resolves to just after the jump.
+
+**The tick** (`NotificationScheduler.tick`, every minute). It reads from PostgreSQL instead of keeping one delayed job per reminder: editing or deleting a task can never leave a stale job, and the database stays the only source of truth.
+
+1. **Task reminders.** `remind_at` in `(now − 1 h, now]`, unsent, task not completed. Each is claimed with `UPDATE … WHERE sent_at IS NULL`, so a retry or a second worker cannot send it twice.
+2. **Due soon.** Open tasks without reminders of their own, whose anchor (due time, or 09:00 for date-only) is within the user's lead time. De-duplicated by `due-soon:<taskId>:<anchor>`, so moving the due date arms a new warning.
+3. **Daily summary.** Users whose local time is within an hour after their chosen time and who have not had today's summary. The local date is claimed in `last_digest_on`. It is skipped when nothing is due today or overdue.
+
+**Delivery.** `NotificationsService.notify()` reads the user's channels for the type:
+
+- both off: nothing happens;
+- otherwise it inserts the row (`in_app` per the setting);
+- if email is on, it queues `email.notification`, which checks the setting again before sending.
+
+The in-app feed is cursor-paginated by UUIDv7 id (time-ordered). The web app polls the unread count every 60 seconds and on window focus.
+
+**Unsubscribe.**
+
+- Tokens are `base64url(userId.type).HMAC-SHA256`, keyed with a secret derived from the server secret. They are stateless and can only turn one email type off.
+- `POST /notifications/unsubscribe` serves the web page at `/unsubscribe`.
+- `POST /notifications/unsubscribe/one-click` serves mail providers and is exempt from the Origin check, because the token itself authorises it.
+
+**New sign-in alerts.**
+
+- `SessionsService.create` (password, sign-up and OAuth sign-in alike) records the browser's `tf_device` cookie. The cookie is random, httpOnly, scoped to `/api/v1/auth`, lasts 400 days and is kept after logout.
+- An unknown cookie on an account that already has devices raises a `NEW_SIGN_IN` notification. The first device is recorded silently.
+- Failures here are logged and never block signing in.
 
 ---
 
@@ -1812,7 +1866,8 @@ High-level order; the implementation plan breaks each phase into small, test-dri
 - **Queued media processing** (`media.process`) for large files or video.
 - **Email verification** after registration — schema already supports it.
 - **Verified email change** (confirm the new address before switching).
-- **End-to-end tests** with Playwright.
+- **End-to-end tests** with Playwright in CI (they are run by hand against the running app today).
+- **Web Push** as a third notification channel, and recurring tasks.
 - **Queue dashboard** (e.g. Bull Board) behind an admin role.
 - **Trigram index** (`pg_trgm`) for fast substring search at scale.
 - **Tags, subtasks, teams and sharing** — intentionally excluded (YAGNI).

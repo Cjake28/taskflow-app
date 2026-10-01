@@ -6,6 +6,7 @@ import {
   TASK_SORT_FIELDS,
   TASK_STATUSES,
 } from '../constants/task';
+import { remindersSchema } from './notification';
 
 const titleSchema = z
   .string({ error: 'Title is required' })
@@ -33,6 +34,7 @@ export const createTaskSchema = z.strictObject({
   priority: prioritySchema.optional(),
   dueDate: dueDateSchema.optional(),
   hasDueTime: z.boolean().optional(),
+  reminders: remindersSchema.optional(),
 });
 
 export type CreateTaskInput = z.input<typeof createTaskSchema>;
@@ -46,6 +48,8 @@ export const updateTaskSchema = z
     priority: prioritySchema.optional(),
     dueDate: dueDateSchema.optional(),
     hasDueTime: z.boolean().optional(),
+    /** Replaces the task's reminders; reminders sent earlier keep their `id`. */
+    reminders: remindersSchema.optional(),
   })
   .superRefine((data, ctx) => {
     if (Object.values(data).every((value) => value === undefined)) {

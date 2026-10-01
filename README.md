@@ -20,6 +20,10 @@ It was built for a full-stack developer technical assessment. The required stack
     <td><img src="docs/screenshots/activity.webp" alt="Activity history with date and type filters" /></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/notifications.webp" alt="Notification bell with reminders, the daily summary and a new sign-in alert" /></td>
+    <td><img src="docs/screenshots/notification-settings.webp" alt="Notification settings: in-app and email per type, due-soon lead time, summary time and time zone" /></td>
+  </tr>
+  <tr>
     <td><img src="docs/screenshots/login.webp" alt="Login page" /></td>
     <td align="center">
       <img src="docs/screenshots/mobile-dashboard-dark.webp" alt="Mobile dashboard in dark mode" width="45%" />
@@ -83,6 +87,10 @@ It was built for a full-stack developer technical assessment. The required stack
 - **Calendar page:** a month view of tasks by due date, with arrow-key navigation, a selected-day timeline and "Add" on that day.
 - **Activity page:** the full history across tasks, grouped by day, with before → after values. Filters by time range (today, 7 or 30 days, custom) and type (created, edited, status, images, deleted), plus title search, all kept in the URL.
 - **Activity history** per task as well.
+- **Notifications and reminders:**
+  - up to 5 reminders per task, each "before the due time" (it follows the due date when that changes) or at a fixed time, with an optional message of your own;
+  - a "due soon" heads-up for tasks without reminders, a daily summary at the time you choose, and an alert when your account signs in from a new browser;
+  - delivered in the app (a bell with an unread count) and by email, switchable per type and per channel in Profile → Notifications; every email has a one-click unsubscribe.
 - Profile: view and edit names, username and email (with uniqueness checks; changing the email needs the current password). You can also manage your avatar, password, sessions and connected accounts.
 - Light and dark themes, a responsive layout (sidebar on desktop, bottom tab bar on phones), keyboard shortcuts, and loading, empty, error and success states throughout.
 
@@ -219,10 +227,10 @@ npm run build -w @taskflow/frontend   # production build in frontend/dist
 
 After `npm run db:seed`:
 
-| Email               | Username | Password      | Data                                                                                                                                        |
-| ------------------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `demo@taskflow.dev` | `demo`   | `Demo@12345!` | 24 tasks across every status, priority and due window (overdue, today, this week, later, none), activity history, an avatar and task images |
-| `alex@taskflow.dev` | `alex`   | `Alex@12345!` | A few private tasks and an image. Use it to check that one user cannot open another user's task or image by URL                             |
+| Email               | Username | Password      | Data                                                                                                                                                                                         |
+| ------------------- | -------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `demo@taskflow.dev` | `demo`   | `Demo@12345!` | 24 tasks across every status, priority and due window (overdue, today, this week, later, none), activity history, an avatar, task images, reminders on several tasks and a few notifications |
+| `alex@taskflow.dev` | `alex`   | `Alex@12345!` | A few private tasks and an image. Use it to check that one user cannot open another user's task or image by URL                                                                              |
 
 ## Testing forgot/reset password emails
 
@@ -244,6 +252,15 @@ In development every email is caught by **Mailpit**; nothing reaches a real inbo
 Try a wrong code (it says how many attempts are left), or wait 60 seconds and use **send a new code** (the old code stops working).
 
 **Changing the email (OTP).** On Profile → Account, click **Change** next to the email and enter the new address and your current password. A code goes to the **new** address (check Mailpit). The email changes only after you enter it, and the **old** address receives "Your TaskFlow email was changed".
+
+**Reminders and notifications.** The worker looks for due reminders every minute.
+
+1. Create a task and click **Add reminder**. Pick **Custom date & time** two minutes from now and write a message.
+2. Within a minute of that time, the bell shows "Reminder: …" and Mailpit has the email with your message.
+3. Click **Unsubscribe** in that email. Only task reminder emails are turned off (see Profile → Notifications); the bell still gets them.
+4. Sign in from another browser or a private window. The first browser's bell shows "New sign-in from …", and Mailpit has the alert.
+
+The daily summary goes out at the time set in Profile → Notifications (8:00 by default, in your time zone) when something is due that day or overdue.
 
 **Sending real emails (optional).** Any SMTP provider works through the `SMTP_*` variables. For example, Gmail with an [app password](https://support.google.com/accounts/answer/185833):
 
@@ -267,22 +284,25 @@ npm run test -w @taskflow/frontend     # component and unit tests (Vitest + Test
 npm run lint && npm run typecheck && npm run format:check
 ```
 
-- About 390 tests in total: around 190 backend, 175 frontend and 20 shared.
+- About 500 tests in total: around 240 backend, 225 frontend and 35 shared.
 - The **backend** suite covers:
   - registration, login, sessions and refresh rotation;
   - password reset, email verification and OAuth (with a fake provider);
   - task CRUD, filters and ownership;
   - images (processing, storage drivers, serving, retention);
-  - the dashboard, rate limits and the error envelope.
-- Time-dependent behaviour (token expiry, retention) is tested with an injectable clock.
+  - the dashboard, rate limits and the error envelope;
+  - reminders, the notification scheduler (reminders, due soon, daily summary), the feed, settings, signed unsubscribe links and new sign-in alerts.
+- Time-dependent behaviour (token expiry, retention, reminders, time zones and daylight saving) is tested with an injectable clock.
 - The **frontend** suite covers:
   - the API client (single-flight refresh), form error mapping and URL state;
   - board ordering, upload checks, cache updates and agenda grouping;
-  - profile diffing and the main forms and dialogs.
+  - profile diffing and the main forms and dialogs;
+  - the reminder editor, the notification bell and the notification settings.
 - Every flow was also exercised in a real browser with Playwright, against the running app:
   - desktop 1440×900 and mobile 390×844, light and dark;
   - register, log in and out, protected redirects, forgot/reset password through Mailpit, and cross-user access;
-  - tasks CRUD, search, filters, board drag and drop, images, profile.
+  - tasks CRUD, search, filters, board drag and drop, images, profile;
+  - a reminder created in the form firing on time, its email and unsubscribe link in Mailpit, and a new sign-in alert.
 - Storage on S3: `docker compose --profile s3 up -d` starts SeaweedFS. Then `TEST_STORAGE_DRIVER=s3 S3_TEST_ENDPOINT=http://localhost:8333 npm run test -w @taskflow/backend` runs the storage and image tests against it.
 - CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs format, lint, typecheck, all tests, the web build and a dependency audit, plus the S3 tests against SeaweedFS.
 
@@ -297,15 +317,16 @@ REST API under `/api/v1`, documented interactively at **`/api/docs`** (OpenAPI 3
   - `400` validation/business rule, `401` not signed in or `TOKEN_EXPIRED`, `403` bad origin (CSRF);
   - `404` (also for other users' resources), `409` duplicate, `413`/`415` uploads, `429` with `Retry-After`, `503` dependency down.
 
-| Area      | Endpoints                                                                                                                                                                                                                                                                                                     |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth      | `POST /auth/register`, `/auth/register/verify`, `/auth/register/resend`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/forgot-password`, `/auth/reset-password/verify`, `/auth/reset-password`                                                                                   |
-| OAuth     | `GET /auth/oauth/providers`, `GET /auth/oauth/:provider[?mode=link]`, `GET /auth/oauth/:provider/callback`                                                                                                                                                                                                    |
-| Profile   | `GET/PATCH /users/me`, `GET/POST/DELETE /users/me/email`, `POST /users/me/email/verify`, `POST /users/me/email/resend`, `PATCH /users/me/password`, `PUT/DELETE /users/me/avatar`, `GET /users/me/sessions`, `DELETE /users/me/sessions/:id`, `GET /users/me/accounts`, `DELETE /users/me/accounts/:provider` |
-| Tasks     | `GET/POST /tasks` (search, `status`, `priority`, `overdue`, `dueFrom`, `dueTo`, `sortBy`, `sortOrder`, `page`, `pageSize`), `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/move`, `GET /tasks/:id/activities`                                                                                               |
-| Images    | `POST /tasks/:id/images`, `DELETE /tasks/:id/images/:imageId`, `POST /tasks/:id/images/:imageId/restore`, `GET /images/:id?variant=display\|thumb`                                                                                                                                                            |
-| Dashboard | `GET /dashboard/stats`, `GET /activities` (`action`, `from`, `to`, `search`, `page`, `pageSize`)                                                                                                                                                                                                              |
-| System    | `GET /health`                                                                                                                                                                                                                                                                                                 |
+| Area          | Endpoints                                                                                                                                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth          | `POST /auth/register`, `/auth/register/verify`, `/auth/register/resend`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/forgot-password`, `/auth/reset-password/verify`, `/auth/reset-password`                                                                                   |
+| OAuth         | `GET /auth/oauth/providers`, `GET /auth/oauth/:provider[?mode=link]`, `GET /auth/oauth/:provider/callback`                                                                                                                                                                                                    |
+| Profile       | `GET/PATCH /users/me`, `GET/POST/DELETE /users/me/email`, `POST /users/me/email/verify`, `POST /users/me/email/resend`, `PATCH /users/me/password`, `PUT/DELETE /users/me/avatar`, `GET /users/me/sessions`, `DELETE /users/me/sessions/:id`, `GET /users/me/accounts`, `DELETE /users/me/accounts/:provider` |
+| Tasks         | `GET/POST /tasks` (search, `status`, `priority`, `overdue`, `dueFrom`, `dueTo`, `sortBy`, `sortOrder`, `page`, `pageSize`), `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/move`, `GET /tasks/:id/activities`                                                                                               |
+| Images        | `POST /tasks/:id/images`, `DELETE /tasks/:id/images/:imageId`, `POST /tasks/:id/images/:imageId/restore`, `GET /images/:id?variant=display\|thumb`                                                                                                                                                            |
+| Dashboard     | `GET /dashboard/stats`, `GET /activities` (`action`, `from`, `to`, `search`, `page`, `pageSize`)                                                                                                                                                                                                              |
+| Notifications | `GET /notifications` (`cursor`, `limit`, `unread`), `GET /notifications/unread-count`, `POST /notifications/read`, `GET/PATCH /notifications/preferences`, `POST /notifications/unsubscribe`, `POST /notifications/unsubscribe/one-click`                                                                     |
+| System        | `GET /health`                                                                                                                                                                                                                                                                                                 |
 
 State-changing requests must send an `Origin` header that matches `FRONTEND_URL` (browsers do this automatically). With curl, add `-H "Origin: http://localhost:5173"`.
 
@@ -398,7 +419,11 @@ Because every address is confirmed with a code before it is used, there are no u
 
 ```
 User 1─* Task 1─* Image            (task images; ON DELETE SET NULL, then soft-deleted and purged)
-  │        └─* TaskActivity         (history; survives task deletion with a title snapshot)
+  │        ├─* TaskActivity         (history; survives task deletion with a title snapshot)
+  │        └─* TaskReminder         (before the due time or at a fixed time; remindAt, sentAt)
+  ├─* Notification                  (in-app feed and de-duplication; task link SET NULL on delete)
+  ├─? NotificationPreference        (in-app/email per type, time zone, daily summary time)
+  ├─* KnownDevice                   (hashed device cookie, for new sign-in alerts)
   ├─* Session                       (one row per signed-in device; refresh-token hash)
   ├─* VerificationToken             (PASSWORD_RESET / EMAIL_VERIFICATION; hash, expiry, usedAt)
   ├─* OAuthAccount                  (unique per provider account and per user+provider)
@@ -408,7 +433,7 @@ User 1─* Task 1─* Image            (task images; ON DELETE SET NULL, then so
 
 - UUIDv7 primary keys: unique like UUIDs, but time-ordered, which keeps indexes efficient.
 - `timestamptz` timestamps; snake_case table and column names via `@map`.
-- Enums: `TaskStatus`, `TaskPriority`, `TokenType`, `ActivityAction`, `OAuthProvider`, `ImageKind`.
+- Enums: `TaskStatus`, `TaskPriority`, `TokenType`, `ActivityAction`, `OAuthProvider`, `ImageKind`, `NotificationType`.
 - Unique constraints on `username`, `email`, token hashes, storage keys and OAuth account pairs.
 - Composite indexes shaped by the queries, e.g. `(userId, status, position)` for the board and `(userId, dueDate)` for due-date filters.
 - Deleting a user cascades to their data.
@@ -430,7 +455,29 @@ Design decisions and the full schema are documented in [`docs/design-spec.md`](d
   - reset, confirmation and "password changed" emails;
   - OAuth avatar import;
   - daily purge of expired images and sweep of orphaned files;
-  - cleanup of old sessions and tokens.
+  - cleanup of old sessions and tokens;
+  - the per-minute notification tick and notification emails, and a daily cleanup of old notifications and unused devices.
+
+### Notifications and reminders
+
+- **Reminders** are rows in `task_reminders`:
+  - "before the due time" ones store an offset and a computed `remindAt`, recomputed whenever the due date changes;
+  - fixed ones store only `remindAt`, which must be in the future when saved;
+  - a task without a time is due "by the end of the day", so its reminders count back from 9:00 on that date in the user's time zone (the browser keeps the zone in sync);
+  - saving a task replaces its reminders, but one that keeps its id and timing keeps its "sent" state, so editing a task never sends a reminder twice.
+- **One scheduler instead of one delayed job per reminder.** A BullMQ job scheduler runs `notifications.tick` every minute on its own queue, and reads what is due from PostgreSQL:
+  - reminders whose time has come on open tasks (up to an hour late, e.g. after downtime; older ones show as missed);
+  - a "due soon" heads-up for open tasks without reminders of their own;
+  - the daily summary for users whose local time just passed their chosen time (skipped when nothing is due or overdue).
+
+  Editing or deleting a task never leaves a stale job behind, because the database is the only source of truth.
+
+- **Exactly once.** Each reminder is claimed with a conditional update (`sentAt IS NULL`). "Due soon" relies on a unique `(userId, dedupeKey)` on `notifications`, and the daily summary claims the user's local date. A retry or a second worker cannot send twice.
+- **Channels.** Each event becomes a `notifications` row (the in-app feed, unless in-app is off for that type) and, if email is on, an `email.notification` job. The job checks the setting again, so turning email off also stops emails that were already queued.
+- **Unsubscribe.** Every notification email has a link and RFC 8058 `List-Unsubscribe` headers with an HMAC-signed token naming the user and the type.
+  - It turns off just that email and needs no sign-in.
+  - The one-click endpoint is exempt from the origin check because the token itself authorises it.
+- **New sign-in alerts.** Sign-ins set a long-lived, httpOnly `tf_device` cookie (random, stored hashed in `known_devices`). A sign-in from a browser without a known cookie raises an alert; an account's first browser is recorded silently.
 
 ### Google and GitHub sign-in (optional)
 
@@ -452,7 +499,7 @@ taskflow/
 │   │   ├── common/           # exceptions, middleware (auth, validation, rate limit, upload), security, utils
 │   │   ├── config/           # environment validation
 │   │   ├── database/ redis/ storage/ mail/ jobs/ docs/
-│   │   ├── modules/          # auth, users, tasks, images, activities, dashboard, oauth, health
+│   │   ├── modules/          # auth, users, tasks, images, activities, dashboard, notifications, oauth, health
 │   │   ├── container.ts      # composition root (dependency wiring)
 │   │   ├── app.ts routes.ts server.ts worker.ts
 │   └── tests/                # API and unit tests
@@ -460,7 +507,7 @@ taskflow/
 │   └── src/
 │       ├── app/              # router, providers, error boundaries
 │       ├── components/       # ui (shadcn), common, layout, images
-│       ├── features/         # auth, dashboard, tasks, profile
+│       ├── features/         # auth, dashboard, tasks, calendar, activity, notifications, profile
 │       ├── lib/              # api client, query keys, dates, form errors
 │       └── styles/           # design tokens (light/dark)
 ├── docker/ docker-compose.yml
@@ -510,6 +557,10 @@ When they are unset, the buttons are hidden and everything else works.
 - **Sessions that survive refreshes without localStorage tokens.** This needed refresh rotation with a grace window, because parallel tabs refresh at the same time. On the client, a single-flight refresh makes concurrent 401s wait for one refresh instead of racing.
 - **Not leaking account existence.** Forgot password always answers the same way and does the lookup in a background job, so response timing gives nothing away. Login takes the same time for unknown users.
 - **Keeping the database and object storage consistent** without a shared transaction. Writes are ordered, deletes are soft with retention jobs, and a sweep removes orphaned files.
+- **Reminders that fire once, on time, in the user's time zone.**
+  - A per-minute tick reading the database replaced per-reminder delayed jobs, which go stale when a task is edited.
+  - Atomic claims and de-duplication keys make retries safe.
+  - An all-day task's reminders count back from 9:00 local time, using small `Intl`-based helpers tested across daylight-saving changes.
 - **Due dates across time zones.** An all-day task is stored as the end of that local day, so it only becomes overdue after the day ends. Dashboard windows ("due in the next 7 days") are rolling, so they are correct in any zone.
 
 ## What I would improve
@@ -518,6 +569,7 @@ When they are unset, the buttons are hidden and everything else works.
 - Deployment: a production Dockerfile, a managed PostgreSQL/Redis, R2 for images, and HTTPS with `COOKIE_SECURE=true`.
 - Real-time updates across devices (WebSocket or SSE) and optimistic concurrency (ETags) for simultaneous edits.
 - Collaboration: shared projects, assignees and comments, which the ownership model would extend with membership checks.
-- Recurring tasks, reminders by email or push, and calendar export.
-- Two-factor authentication (TOTP or passkeys) and a login notification email for new devices.
+- Recurring tasks, push notifications (Web Push) and calendar export.
+- Two-factor authentication (TOTP or passkeys).
+- Scale the notification tick: batch the daily summary by time zone and spread reminders across workers once there are many users.
 - Observability: metrics and tracing for the API and job queues, and alerting on failed jobs.

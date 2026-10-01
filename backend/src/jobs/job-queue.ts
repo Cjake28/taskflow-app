@@ -17,7 +17,13 @@ export interface JobQueue {
   close(): Promise<void>;
 }
 
-const QUEUE_ATTEMPTS: Record<QueueName, number> = { email: 5, media: 5, maintenance: 1 };
+const QUEUE_ATTEMPTS: Record<QueueName, number> = {
+  email: 5,
+  media: 5,
+  maintenance: 1,
+  // A failed tick is simply picked up by the next one a minute later.
+  notifications: 1,
+};
 const JOB_ATTEMPTS: Partial<Record<JobName, number>> = { 'avatar.import': 3 };
 
 /** Production queue backed by Redis. Jobs are retried with exponential backoff. */

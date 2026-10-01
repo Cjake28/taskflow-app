@@ -14,11 +14,23 @@ import type { Prisma } from '../../generated/prisma/client';
 import { ActivityAction, TaskPriority, TaskStatus } from '../../generated/prisma/client';
 import type { ActivityService } from '../activities/activity.service';
 import { toImageResponse } from '../images/images.mapper';
+import type { NotificationPreferencesService } from '../notifications/notification-preferences.service';
 import { needsRenumber, positionBetween } from './positions';
+import {
+  compareReminders,
+  followDueDate,
+  replaceReminders,
+  toReminderResponse,
+} from './task-reminders';
 import { toTaskDetailsResponse, toTaskResponse, type TaskRecord } from './tasks.mapper';
 
-const IMAGE_SUMMARY = {
-  _count: { select: { images: { where: { deletedAt: null } } } },
+const LIST_SUMMARY = {
+  _count: {
+    select: {
+      images: { where: { deletedAt: null } },
+      reminders: { where: { sentAt: null } },
+    },
+  },
   images: {
     where: { deletedAt: null },
     orderBy: { createdAt: 'asc' },
@@ -36,6 +48,7 @@ export class TasksService {
   constructor(
     private readonly prisma: Db,
     private readonly activities: ActivityService,
+    private readonly preferences: NotificationPreferencesService,
     private readonly clock: Clock,
     private readonly hooks: TaskDeletionHooks = {},
   ) {}
@@ -52,7 +65,7 @@ export class TasksService {
         orderBy: this.buildOrderBy(query),
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
-        include: IMAGE_SUMMARY,
+        include: LIST_SUMMARY,
       }),
       this.prisma.task.count({ where }),
     ]);
@@ -61,7 +74,11 @@ export class TasksService {
       items: rows.map((row) =>
         toTaskResponse(
           row,
-          { imageCount: row._count.images, coverImageId: row.images[0]?.id ?? null },
+          {
+            imageCount: row._count.images,
+            coverImageId: row.images[0]?.id ?? null,
+            reminderCount: row._count.reminders,
+          },
           now,
         ),
       ),
@@ -105,6 +122,15 @@ export class TasksService {
         taskTitle: created.title,
         action: ActivityAction.CREATED,
       });
+      if (input.reminders?.length) {
+        await replaceReminders(tx, {
+          userId,
+          task: created,
+          inputs: input.reminders,
+          now,
+          timeZone: await this.preferences.timezoneOf(userId, tx),
+        });
+      }
       return created;
     });
     return this.details(task);
@@ -155,8 +181,27 @@ export class TasksService {
         data.completedAt = input.status === TaskStatus.COMPLETED ? now : null;
       }
 
-      if (Object.keys(data).length === 0) return current;
-      const saved = await tx.task.update({ where: { id: taskId }, data });
+      const dueMoved = data.dueDate !== undefined || data.hasDueTime !== undefined;
+      const saved =
+        Object.keys(data).length === 0
+          ? current
+          : await tx.task.update({ where: { id: taskId }, data });
+
+      if (input.reminders !== undefined || dueMoved) {
+        const timeZone = await this.preferences.timezoneOf(userId, tx);
+        if (input.reminders !== undefined) {
+          await replaceReminders(tx, {
+            userId,
+            task: saved,
+            inputs: input.reminders,
+            now,
+            timeZone,
+          });
+        } else {
+          await followDueDate(tx, saved, timeZone);
+        }
+      }
+      if (saved === current) return current;
 
       if (statusChange) {
         await this.activities.record(tx, {
@@ -276,11 +321,20 @@ export class TasksService {
   }
 
   private async details(task: TaskRecord & { id: string }): Promise<TaskDetailsDto> {
-    const images = await this.prisma.image.findMany({
-      where: { taskId: task.id, deletedAt: null },
-      orderBy: { createdAt: 'asc' },
-    });
-    return toTaskDetailsResponse(task, images.map(toImageResponse), this.clock.now());
+    const now = this.clock.now();
+    const [images, reminders] = await Promise.all([
+      this.prisma.image.findMany({
+        where: { taskId: task.id, deletedAt: null },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.taskReminder.findMany({ where: { taskId: task.id } }),
+    ]);
+    return toTaskDetailsResponse(
+      task,
+      images.map(toImageResponse),
+      reminders.sort(compareReminders).map((reminder) => toReminderResponse(reminder, task, now)),
+      now,
+    );
   }
 
   private async topPosition(tx: Tx, userId: string, status: TaskStatus): Promise<number> {
