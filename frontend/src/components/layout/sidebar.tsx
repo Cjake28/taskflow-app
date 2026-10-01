@@ -5,6 +5,7 @@ import { Avatar } from '@/components/common/avatar';
 import { Logo } from '@/components/common/logo';
 import { useCurrentUser } from '@/features/auth/use-auth';
 import { useOpenTaskCount } from '@/features/dashboard/hooks';
+import { NotificationBell } from '@/features/notifications/components/notification-bell';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -39,9 +40,13 @@ export function Sidebar({ className }: { className?: string }) {
         className,
       )}
     >
-      <Link to="/dashboard" className="mb-5 rounded-xl px-2 py-1" aria-label="TaskFlow home">
-        <Logo />
-      </Link>
+      <div className="mb-5 flex items-center justify-between gap-2">
+        <Link to="/dashboard" className="rounded-xl px-2 py-1" aria-label="TaskFlow home">
+          <Logo />
+        </Link>
+        {/* The panel opens to the right, over the page rather than the sidebar. */}
+        <NotificationBell align="start" />
+      </div>
 
       <nav aria-label="Main" className="flex flex-col gap-1">
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
