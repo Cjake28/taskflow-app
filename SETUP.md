@@ -33,8 +33,8 @@ Open a **new** terminal after installing, so the commands are found.
 Make sure **Docker Desktop is running**, then:
 
 ```bash
-git clone https://github.com/Cjake28/taskflow.git
-cd taskflow
+git clone https://github.com/Cjake28/taskflow-app.git
+cd taskflow-app
 npm run quickstart
 ```
 
@@ -112,8 +112,8 @@ The inbox is at **http://localhost:8025**.
 ### Step 4: Get TaskFlow and point it at your Redis
 
 ```bash
-git clone https://github.com/Cjake28/taskflow.git
-cd taskflow
+git clone https://github.com/Cjake28/taskflow-app.git
+cd taskflow-app
 ```
 
 Create the settings file:

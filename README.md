@@ -121,8 +121,8 @@ It was built for a full-stack developer technical assessment. The required stack
 With **Node.js 24+** and **Docker Desktop running**, one command sets everything up and starts the app:
 
 ```bash
-git clone https://github.com/Cjake28/taskflow.git
-cd taskflow
+git clone https://github.com/Cjake28/taskflow-app.git
+cd taskflow-app
 npm run quickstart
 ```
 
