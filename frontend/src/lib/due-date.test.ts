@@ -59,6 +59,13 @@ describe('describeActivity', () => {
       describeActivity({ ...base, action: 'IMAGE_ADDED', changes: { images: { count: 3 } } })
         .summary,
     ).toBe('Added 3 images');
+    expect(
+      describeActivity({
+        ...base,
+        action: 'IMAGE_ADDED',
+        changes: { images: { count: 1, restored: true } },
+      }).summary,
+    ).toBe('Restored an image');
     expect(describeActivity({ ...base, action: 'IMAGE_REMOVED', changes: null }).summary).toBe(
       'Removed an image',
     );

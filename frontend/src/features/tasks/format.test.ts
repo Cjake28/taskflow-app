@@ -127,4 +127,13 @@ describe('coalesceActivities', () => {
     ]);
     expect(merged).toHaveLength(4);
   });
+
+  it('never folds an undo (restore) into an upload burst', () => {
+    const restore: ActivityDto = {
+      ...activity('2', 'IMAGE_ADDED', 30),
+      changes: { images: { count: 1, restored: true } },
+    };
+    const merged = coalesceActivities([restore, activity('1', 'IMAGE_ADDED', 29)]);
+    expect(merged.map((entry) => entry.id)).toEqual(['2', '1']);
+  });
 });

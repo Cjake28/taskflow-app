@@ -221,6 +221,11 @@ describe('task images', () => {
 
     const restored = await h.post(`${base}/restore`).set('Cookie', cookie);
     expect(restored.status).toBe(200);
+    const afterRestore = await h.get(`/api/v1/tasks/${taskId}/activities`).set('Cookie', cookie);
+    expect(afterRestore.body.data[0]).toMatchObject({
+      action: 'IMAGE_ADDED',
+      changes: { images: { count: 1, restored: true } },
+    });
     expect((await h.get(image.url).set('Cookie', cookie)).status).toBe(200);
 
     await h.del(base).set('Cookie', cookie);

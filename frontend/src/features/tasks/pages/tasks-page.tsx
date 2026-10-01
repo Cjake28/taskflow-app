@@ -114,7 +114,7 @@ export function TasksPage() {
                 <TooltipTrigger asChild>
                   <Button onClick={() => openCreate()}>
                     <Plus aria-hidden="true" />
-                    Add Task
+                    New task
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>

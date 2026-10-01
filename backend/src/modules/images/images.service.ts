@@ -204,7 +204,7 @@ export class ImagesService {
         taskId,
         taskTitle: image.task.title,
         action: ActivityAction.IMAGE_ADDED,
-        changes: { images: { count: 1 } },
+        changes: { images: { count: 1, restored: true } },
       });
       return saved;
     });
