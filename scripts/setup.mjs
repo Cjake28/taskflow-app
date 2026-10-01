@@ -11,6 +11,7 @@
  * Safe to run again. Options:
  *   --no-docker   use your own PostgreSQL/Redis/SMTP (the URLs in backend/.env) instead of Docker
  *   --no-seed     skip the demo data
+ *   --start       start the app (`npm run dev`) afterwards (what `npm run quickstart` does)
  */
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -22,6 +23,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const args = new Set(process.argv.slice(2));
 const useDocker = !args.has('--no-docker');
 const seed = !args.has('--no-seed');
+const start = args.has('--start');
 
 const color = (code) => (text) => (process.stdout.isTTY ? `\x1b[${code}m${text}\x1b[0m` : text);
 const bold = color('1');
@@ -48,6 +50,7 @@ function run(command, { quiet = false, cwd = root } = {}) {
   const result = spawnSync(command, {
     cwd,
     shell: true,
+    env: { ...process.env, PRISMA_HIDE_UPDATE_MESSAGE: '1' },
     stdio: quiet ? 'pipe' : 'inherit',
     encoding: 'utf8',
   });
@@ -140,15 +143,24 @@ if (!seed) {
 }
 
 const port = /^PORT=(\d+)/m.exec(readFileSync(envPath, 'utf8'))?.[1] ?? '4000';
+const webEnvPath = join(root, 'frontend', '.env.local');
+const webPort =
+  (existsSync(webEnvPath) && /^WEB_PORT=(\d+)/m.exec(readFileSync(webEnvPath, 'utf8'))?.[1]) ||
+  '5173';
 console.log(`
-${green(bold('All set!'))} Start the app with:
+${green(bold('All set!'))} ${start ? 'Starting the app…' : 'Start the app with:'}
 
   ${bold('npm run dev')}
 
-  Web app      http://localhost:5173
-  API docs     http://localhost:5173/api/docs
+  Web app      http://localhost:${webPort}
+  API docs     http://localhost:${webPort}/api/docs
   Health       http://localhost:${port}/api/v1/health
   Emails       http://localhost:8025 (Mailpit)
 
   Demo login   ${bold('demo@taskflow.dev')} / ${bold('Demo@12345!')}
 `);
+
+if (start) {
+  const dev = spawnSync('npm run dev', { cwd: root, shell: true, stdio: 'inherit' });
+  process.exit(dev.status ?? 0);
+}

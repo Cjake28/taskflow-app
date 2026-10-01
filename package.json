@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "setup": "node scripts/setup.mjs",
-    "quickstart": "node scripts/setup.mjs && npm run dev",
+    "quickstart": "node scripts/setup.mjs --start",
     "dev": "concurrently --names api,web --prefix-colors cyan,magenta --kill-others-on-fail \"npm:dev:backend\" \"npm:dev:frontend\"",
     "dev:backend": "npm run dev -w @taskflow/backend",
     "dev:frontend": "npm run dev -w @taskflow/frontend",
