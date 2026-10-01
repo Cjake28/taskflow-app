@@ -37,7 +37,7 @@ export function renderEmail(options: LayoutOptions): string {
     .join('');
 
   const quote = options.quote
-    ? `<p style="margin:0 0 18px;padding:12px 16px;font-size:15px;line-height:1.6;color:#1B1C3A;background:#F0F1F9;border-left:3px solid #5B5BF0;border-radius:6px;white-space:pre-line;">${escapeHtml(options.quote)}</p>`
+    ? `<p style="margin:0 0 18px;padding:12px 16px;font-size:15px;line-height:1.6;color:#1B1C3A;background:#F0F1F9;border-radius:10px;white-space:pre-line;">${escapeHtml(options.quote)}</p>`
     : '';
 
   const details = options.details?.length
