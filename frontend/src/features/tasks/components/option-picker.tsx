@@ -76,14 +76,15 @@ export function OptionPicker<T extends string>({
             onKeyDown={(event) => onKeyDown(event, index)}
             style={{ '--tint': option.tint } as CSSProperties}
             className={cn(
-              'flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl px-2 text-[13px] font-bold transition-[background-color,box-shadow,color] duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60',
+              // Phones stack the icon over the label so "In Progress" fits a third of the width.
+              'flex min-h-11 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[13px] font-bold transition-[background-color,box-shadow,color] duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 min-[440px]:flex-row min-[440px]:gap-2 min-[440px]:px-2 min-[440px]:py-0',
               selected
                 ? 'bg-tint-soft text-[color-mix(in_oklab,var(--tint)_85%,var(--foreground))] shadow-[inset_0_0_0_1.5px_var(--tint)]'
                 : 'bg-fill text-muted-foreground hover:text-foreground',
             )}
           >
             {option.icon}
-            <span className="truncate">{option.label}</span>
+            <span className="max-w-full truncate">{option.label}</span>
           </button>
         );
       })}
