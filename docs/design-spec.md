@@ -142,7 +142,7 @@ Bonus work starts only after all core requirements are working.
 | `sharp` **0.35.x** | Image decoding, validation, auto-orientation, resizing and WebP encoding (prebuilt binaries, including Windows x64) |
 | `multer` **2.x** | Multipart parsing with strict size/count limits (memory storage) |
 | `@aws-sdk/client-s3` **3.x** | S3-compatible storage driver (AWS S3, Cloudflare R2, SeaweedFS, MinIO) |
-| `arctic` 3.x | Minimal OAuth 2.0 client (PKCE, state helpers); sessions stay ours |
+| *(in-house)* | Minimal OAuth 2.0 + PKCE client (`oauth2.ts`); Google ID tokens verified with `jose`. `arctic` was used first but npm deprecated it ("no longer supported") during the project |
 | `bowser` | Friendly device names for the Active Sessions list ("Chrome on Windows") — MIT licensed (avoids `ua-parser-js` v2, which is AGPL) |
 | `@asteasolutions/zod-to-openapi` + `swagger-ui-express` | Bonus API docs generated from the same Zod schemas (verify Zod 4 support; fall back to Zod 4's native `z.toJSONSchema()`) |
 
@@ -959,7 +959,7 @@ Afterwards the old password no longer works and every existing session is signed
 
 ### 9.1 Principles
 
-- Library: **`arctic`** — a thin OAuth client; sessions remain our own (§7).
+- Library: a small in-house OAuth 2.0 + PKCE client (it replaced `arctic` after npm deprecated it); Google ID tokens are verified with `jose` (signature, issuer, audience, expiry); sessions remain our own (§7).
 - **Optional by configuration:** a provider is enabled only when its client ID and secret are present. The app runs normally without any OAuth credentials, and the frontend hides disabled buttons using `GET /auth/oauth/providers`.
 - Users are matched by **provider account ID** (Google `sub`, GitHub numeric `id`) — never by email, which can change.
 

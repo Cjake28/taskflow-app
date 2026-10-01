@@ -5,7 +5,6 @@ import {
   type LinkedAccountsDto,
   type OAuthProviderId,
 } from '@taskflow/shared';
-import { generateCodeVerifier, generateState } from 'arctic';
 import type { Redis } from 'ioredis';
 import { timingSafeEqual } from 'node:crypto';
 import { BadRequestException, NotFoundException } from '../../common/exceptions';
@@ -16,6 +15,7 @@ import { isUniqueViolation, type Db } from '../../database/prisma';
 import { OAuthProvider as DbProvider } from '../../generated/prisma/client';
 import type { JobQueue } from '../../jobs/job-queue';
 import type { IssuedSession, SessionsService } from '../auth/sessions.service';
+import { generateCodeVerifier, generateState } from './providers/oauth2';
 import type { NormalizedProfile, OAuthProvider } from './providers/oauth-provider';
 import { usernameBase, usernameCandidates } from './username';
 
