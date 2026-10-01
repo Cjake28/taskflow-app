@@ -113,7 +113,7 @@ export function ImageDropzone({
         <span
           aria-hidden="true"
           className={cn(
-            'grid shrink-0 place-items-center rounded-full bg-brand-gradient text-white shadow-glow transition-transform duration-200',
+            'grid shrink-0 place-items-center rounded-full bg-primary text-white transition-transform duration-200',
             compact ? 'size-10 [&_svg]:size-[18px]' : 'size-12 [&_svg]:size-[22px]',
             dragging && 'scale-110',
           )}

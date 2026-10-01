@@ -83,7 +83,6 @@ export function NoTasksState({ onCreate }: { onCreate: () => void }) {
   return (
     <EmptyState
       icon={ClipboardList}
-      sparkles
       title="No tasks yet"
       description="Create your first task and it'll show up here, on your board and on your dashboard."
       action={

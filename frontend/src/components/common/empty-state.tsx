@@ -13,7 +13,6 @@ export interface EmptyStateProps {
   description?: ReactNode;
   /** Buttons or links rendered under the copy. */
   action?: ReactNode;
-  sparkles?: boolean;
   size?: 'sm' | 'md';
   /** Render without the card surface (when already inside a card). */
   bare?: boolean;
@@ -28,7 +27,6 @@ export function EmptyState({
   title,
   description,
   action,
-  sparkles = false,
   size = 'md',
   bare = false,
   className,
@@ -43,13 +41,7 @@ export function EmptyState({
         className,
       )}
     >
-      <IconArt
-        icon={icon}
-        tint={tint}
-        size={size}
-        sparkles={sparkles}
-        className={size === 'md' ? 'mb-5' : 'mb-3.5'}
-      />
+      <IconArt icon={icon} tint={tint} size={size} className={size === 'md' ? 'mb-5' : 'mb-3.5'} />
       <Heading className={cn('font-extrabold', size === 'md' ? 'text-lg' : 'text-base')}>
         {title}
       </Heading>

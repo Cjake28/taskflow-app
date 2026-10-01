@@ -63,17 +63,8 @@ export function CompletionCard({ stats }: { stats: DashboardStats }) {
   return (
     <section
       aria-labelledby={titleId}
-      className="relative isolate overflow-hidden rounded-card bg-brand-gradient p-6 text-primary-foreground shadow-glow"
+      className="relative isolate overflow-hidden rounded-card bg-primary p-6 text-primary-foreground"
     >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-[70px] -right-[60px] -z-10 size-[190px] rounded-full bg-white/10"
-      />
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute right-[50px] -bottom-[75px] -z-10 size-[120px] rounded-full bg-white/10"
-      />
-
       <div className="flex items-center gap-4">
         <div className="min-w-0 flex-1">
           <h2 id={titleId} className="text-[13px] font-semibold text-white/85">

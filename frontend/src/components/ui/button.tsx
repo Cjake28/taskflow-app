@@ -10,9 +10,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        /** Gradient primary action with a coloured glow. */
+        /** Solid primary action. */
         default:
-          'bg-brand-gradient text-primary-foreground shadow-glow hover:brightness-[1.06] focus-visible:ring-primary/35',
+          'bg-primary text-primary-foreground hover:bg-[color-mix(in_oklab,var(--primary),black_8%)] focus-visible:ring-primary/35',
         /** Card surface with a hairline border. */
         outline:
           'bg-card text-foreground shadow-[inset_0_0_0_1px_var(--border)] hover:bg-fill focus-visible:shadow-none',
@@ -22,7 +22,7 @@ const buttonVariants = cva(
         ghost: 'text-muted-foreground hover:bg-fill hover:text-foreground',
         /** Solid coral for the confirming action of a destructive flow. */
         destructive:
-          'bg-danger text-white shadow-[0_14px_24px_-14px_var(--danger)] hover:brightness-[1.05] focus-visible:ring-danger/30',
+          'bg-danger text-white hover:bg-[color-mix(in_oklab,var(--danger),black_8%)] focus-visible:ring-danger/30',
         /** Tinted coral for secondary destructive actions (e.g. "Delete" in a toolbar). */
         'destructive-soft':
           '[--tint:var(--danger)] bg-tint-faint text-danger hover:bg-tint-soft focus-visible:ring-danger/25',

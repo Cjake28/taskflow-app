@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 export interface LogoMarkProps {
   size?: 'md' | 'lg';
-  /** Translucent variant for the gradient brand panel. */
+  /** Translucent variant for the brand panel. */
   onBrand?: boolean;
   className?: string;
 }
@@ -18,7 +18,7 @@ export function LogoMark({ size = 'md', onBrand = false, className }: LogoMarkPr
         size === 'md'
           ? 'size-9 rounded-xl [&_svg]:size-[18px]'
           : 'size-16 rounded-[20px] [&_svg]:size-[30px]',
-        onBrand ? 'bg-white/18' : 'bg-brand-gradient shadow-glow',
+        onBrand ? 'bg-white/18' : 'bg-primary',
         className,
       )}
     >

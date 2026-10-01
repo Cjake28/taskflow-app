@@ -181,7 +181,7 @@ export function ResetPasswordPage() {
     <AuthLayout
       heading="Choose a new password."
       text="Once it's reset, every device signed in to your account is logged out, including anyone who shouldn't be there."
-      visual={<IconArt icon={KeyRound} size="lg" onBrand sparkles />}
+      visual={<IconArt icon={KeyRound} size="lg" onBrand />}
       visualPlacement="center"
     >
       <title>Reset password · TaskFlow</title>

@@ -22,7 +22,7 @@ export function NotFoundPage() {
       <section className="w-full max-w-[460px] rounded-card bg-card px-6 py-11 text-center shadow-card">
         <p
           aria-hidden="true"
-          className="mb-3 bg-[linear-gradient(135deg,var(--primary),var(--primary-2))] bg-clip-text text-[88px] leading-none font-extrabold tracking-[-0.05em] text-transparent"
+          className="mb-3 text-[88px] leading-none font-extrabold tracking-[-0.05em] text-primary"
         >
           404
         </p>
