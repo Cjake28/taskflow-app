@@ -52,7 +52,7 @@ export function toFormValues(
     TaskDto,
     'title' | 'description' | 'status' | 'priority' | 'dueDate' | 'hasDueTime'
   > | null,
-  defaults: { status?: TaskStatus } = {},
+  defaults: { status?: TaskStatus; dueDate?: string } = {},
 ): TaskFormInput {
   const due = task ? fromDueDate(task.dueDate, task.hasDueTime) : null;
   return {
@@ -60,7 +60,7 @@ export function toFormValues(
     description: task?.description ?? '',
     status: task?.status ?? defaults.status ?? 'TODO',
     priority: task?.priority ?? 'MEDIUM',
-    dueDate: due?.date ?? '',
+    dueDate: due?.date ?? defaults.dueDate ?? '',
     dueTime: due?.time ?? '',
   };
 }

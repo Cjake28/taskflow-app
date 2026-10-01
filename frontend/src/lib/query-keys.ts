@@ -12,6 +12,8 @@ export const queryKeys = {
     list: (params: Record<string, unknown>) => ['tasks', 'list', params] as const,
     detail: (id: string) => ['tasks', 'detail', id] as const,
     activities: (id: string) => ['tasks', 'activities', id] as const,
+    /** Every task due within a date range (not a paginated list). */
+    calendar: (range: { dueFrom: string; dueTo: string }) => ['tasks', 'calendar', range] as const,
   },
   dashboard: {
     all: ['dashboard'] as const,
@@ -20,6 +22,8 @@ export const queryKeys = {
   activities: {
     all: ['activities'] as const,
     recent: (limit: number) => ['activities', 'recent', limit] as const,
+    /** The filtered history on the Activity page. */
+    history: (filters: Record<string, unknown>) => ['activities', 'history', filters] as const,
   },
   account: {
     sessions: () => ['account', 'sessions'] as const,
