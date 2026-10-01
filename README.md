@@ -114,6 +114,8 @@ It was built for a full-stack developer technical assessment. The required stack
 
 ## Quick start
 
+> **New to this?** [**SETUP.md**](SETUP.md) is a plain step-by-step guide, with Docker and without it (installing PostgreSQL and Redis yourself), with every setting already filled in.
+
 With **Node.js 24+** and **Docker Desktop running**, one command sets everything up and starts the app:
 
 ```bash
@@ -218,7 +220,7 @@ npm run db:migrate                          # development: apply migrations (and
 npm run db:deploy                           # production/CI: apply existing migrations only
 npm run db:seed                             # demo data (safe to re-run)
 npm run db:studio                           # browse the data in Prisma Studio
-npx prisma migrate reset -w @taskflow/backend   # drop, re-create, migrate and seed (destroys local data)
+npx -w @taskflow/backend prisma migrate reset   # drop and re-create the database, apply the migrations (destroys local data); then npm run db:seed
 ```
 
 The Prisma client is generated into `backend/src/generated/prisma` automatically before `dev`, `test` and `typecheck`.

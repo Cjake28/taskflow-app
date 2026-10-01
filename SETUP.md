@@ -1,0 +1,201 @@
+# TaskFlow: setup guide
+
+The shortest way to get TaskFlow running on your computer. Copy and paste the commands in order.
+
+- **Option A: with Docker.** Easiest: 3 commands.
+- **Option B: without Docker.** You install PostgreSQL and Redis yourself.
+
+Everything is preconfigured for local use: database user and password, Redis password, email inbox, ports and demo accounts. You don't have to edit any settings (except one line in Option B, explained there).
+
+---
+
+## 1. Install these first
+
+| What                               | Get it                                          | Check it works                                           |
+| ---------------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
+| **Node.js 24 or newer**            | https://nodejs.org (the "LTS" button)           | `node -v` shows `v24` or higher                          |
+| **Git**                            | https://git-scm.com/downloads                   | `git --version`                                          |
+| **Docker Desktop** (Option A only) | https://www.docker.com/products/docker-desktop/ | open Docker Desktop and wait until it says it is running |
+
+On Windows you can also use: `winget install OpenJS.NodeJS.LTS Git.Git Docker.DockerDesktop`
+
+Open a **new** terminal after installing, so the commands are found.
+
+---
+
+## 2. Option A: with Docker (recommended)
+
+Make sure **Docker Desktop is running**, then:
+
+```bash
+git clone https://github.com/Cjake28/taskflow.git
+cd taskflow
+npm run quickstart
+```
+
+`npm run quickstart` does everything:
+
+1. installs the packages;
+2. creates the settings file `backend/.env`;
+3. starts the database (PostgreSQL), Redis and the email inbox (Mailpit) in Docker;
+4. creates the tables;
+5. adds the demo accounts;
+6. starts the app.
+
+The first run takes a few minutes (it downloads packages and Docker images).
+
+When you see the web app's address in the terminal, open **http://localhost:5173** and log in:
+
+- **Email:** `demo@taskflow.dev`
+- **Password:** `Demo@12345!`
+
+**Next time,** just run `npm run dev` inside the `taskflow` folder (with Docker Desktop running).
+
+**To stop the app,** press `Ctrl + C` in the terminal.
+
+---
+
+## 3. Option B: without Docker
+
+You install PostgreSQL and Redis on your computer, and the email inbox (Mailpit) too if you want to read the app's emails.
+
+### Step 1: PostgreSQL (the database)
+
+Install **PostgreSQL 17**:
+
+- **Windows:** download the installer from https://www.postgresql.org/download/windows/. During setup, choose a password for the `postgres` user and remember it. Keep port `5432`.
+- **macOS:** `brew install postgresql@17 && brew services start postgresql@17`
+- **Ubuntu/Debian:** `sudo apt install -y postgresql && sudo systemctl start postgresql`
+
+Open the PostgreSQL command line as the admin user:
+
+- **Windows:** Start menu → **SQL Shell (psql)**. Press Enter for each question, then type the `postgres` password you chose.
+- **macOS:** `psql postgres`
+- **Ubuntu/Debian:** `sudo -u postgres psql`
+
+Paste these three lines and press Enter:
+
+```sql
+CREATE USER taskflow WITH PASSWORD 'taskflow' CREATEDB;
+CREATE DATABASE taskflow OWNER taskflow;
+CREATE DATABASE taskflow_test OWNER taskflow;
+```
+
+Type `\q` to exit.
+
+They create the user and databases that TaskFlow (through Prisma) uses: user `taskflow`, password `taskflow`, database `taskflow`, plus `taskflow_test` for the automated tests.
+
+### Step 2: Redis
+
+Install Redis and start it on the default port `6379`:
+
+- **Windows:** install **Memurai Developer** (free, Redis-compatible) from https://www.memurai.com/get-memurai. It runs in the background by itself.
+  - Or, if you use WSL (Ubuntu): `sudo apt install -y redis-server && sudo service redis-server start`
+- **macOS:** `brew install redis && brew services start redis`
+- **Ubuntu/Debian:** `sudo apt install -y redis-server && sudo systemctl start redis-server`
+
+### Step 3: Mailpit (optional: lets you read the app's emails)
+
+You need it to **register a new account** (the sign-up code is sent by email), to try **forgot password** and to see **reminder emails**. The demo accounts work without it.
+
+- **Windows:** download `mailpit-windows-amd64.zip` from https://github.com/axllent/mailpit/releases/latest, unzip it and double-click `mailpit.exe`. Keep that window open.
+- **macOS:** `brew install mailpit && brew services start mailpit`
+- **Linux:** `sudo bash < <(curl -sL https://raw.githubusercontent.com/axllent/mailpit/develop/install.sh)`, then run `mailpit`.
+
+The inbox is at **http://localhost:8025**.
+
+### Step 4: Get TaskFlow and point it at your Redis
+
+```bash
+git clone https://github.com/Cjake28/taskflow.git
+cd taskflow
+```
+
+Create the settings file:
+
+- **Windows (PowerShell):** `Copy-Item backend\.env.example backend\.env`
+- **macOS / Linux:** `cp backend/.env.example backend/.env`
+
+Open `backend/.env` in any text editor. Find this line:
+
+```env
+REDIS_URL=redis://:taskflow@127.0.0.1:6379/0
+```
+
+Change it to the following, because a fresh Redis has no password:
+
+```env
+REDIS_URL=redis://127.0.0.1:6379/0
+```
+
+Save the file. This is the only setting you need to change.
+
+### Step 5: Start
+
+```bash
+npm run quickstart -- --no-docker
+```
+
+It installs the packages, creates the tables, adds the demo accounts and starts the app. Open **http://localhost:5173** and log in with `demo@taskflow.dev` / `Demo@12345!`.
+
+**Next time,** just run `npm run dev` (with PostgreSQL and Redis running).
+
+---
+
+## 4. The ready-made settings
+
+These are already in `backend/.env` (copied from `backend/.env.example`). `npm run setup` also fills in a random `JWT_ACCESS_SECRET`.
+
+| Setting                   | Value                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| Web app                   | http://localhost:5173                                                                 |
+| API                       | http://localhost:4000 (docs: http://localhost:5173/api/docs)                          |
+| Database (used by Prisma) | `postgresql://taskflow:taskflow@127.0.0.1:5432/taskflow`                              |
+| Database user / password  | `taskflow` / `taskflow`                                                               |
+| Test database             | `taskflow_test` (only for `npm test`)                                                 |
+| Redis                     | `redis://:taskflow@127.0.0.1:6379/0` (password `taskflow`; Option B uses no password) |
+| Email (SMTP)              | Mailpit at `127.0.0.1:1025`, inbox http://localhost:8025                              |
+| Uploaded images           | saved in `backend/storage`                                                            |
+
+These values are for your own computer only. They are not secrets and are not used anywhere else.
+
+### Demo accounts
+
+| Email               | Password      | What's inside                                                              |
+| ------------------- | ------------- | -------------------------------------------------------------------------- |
+| `demo@taskflow.dev` | `Demo@12345!` | 24 tasks, images, reminders, notifications                                 |
+| `alex@taskflow.dev` | `Alex@12345!` | a few tasks; use it to check that one user can't open another user's tasks |
+
+You can also register your own account. The 6-digit code arrives in Mailpit (http://localhost:8025).
+
+---
+
+## 5. Try these
+
+- **Forgot password:** on the login page, click **Forgot password?**, enter `demo@taskflow.dev`, and open the email in Mailpit (http://localhost:8025).
+- **Reminders:** create a task, click **Add reminder**, pick **Custom date & time** two minutes from now, and wait. The bell and Mailpit show it.
+- **Dark mode:** Profile → Security → This device → Appearance (or follow your system's setting).
+
+---
+
+## 6. If something goes wrong
+
+| You see                                                | Do this                                                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Docker is installed but not running`                  | Open Docker Desktop, wait until it is running, run `npm run quickstart` again.                                                              |
+| `port is already allocated` / `address already in use` | Another program uses 5432, 6379, 1025, 8025, 4000 or 5173. Close it, or see "Ports already in use?" in the [README](README.md#quick-start). |
+| `password authentication failed for user "taskflow"`   | Step 1 of Option B wasn't run (or used another password). Run the three SQL lines again.                                                    |
+| `ERR AUTH` or `NOAUTH` (Redis)                         | The `REDIS_URL` password doesn't match your Redis. Without Docker, use `redis://127.0.0.1:6379/0` (Step 4).                                 |
+| `Node.js 24 or newer is required`                      | Install Node.js 24+ from https://nodejs.org and open a new terminal.                                                                        |
+| The page opens but you can't log in                    | Make sure the terminal running `npm run dev` shows `API listening`.                                                                         |
+
+**Reset the demo accounts** (both options): `npm run db:seed`
+
+**Start over from scratch** (deletes all local data):
+
+- **Option A:** `docker compose down -v`, then `npm run setup`.
+- **Option B:** `npx -w @taskflow/backend prisma migrate reset --force` (empties the database and re-creates the tables), then `npm run db:seed` for the demo accounts.
+
+You can run `npm run setup` as many times as you like. It keeps your `backend/.env`, applies any new migrations and resets the demo accounts (add `-- --no-seed` to leave them as they are).
+
+For how the app works, the API and the tests, see the [README](README.md).
