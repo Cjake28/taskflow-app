@@ -7,6 +7,7 @@ import {
   type ImageDto,
   type TaskDetailsDto,
   type TaskDto,
+  type TaskReminderDto,
   type TaskStatus,
 } from '@taskflow/shared';
 import { CalendarDays, Check, ChevronDown, Clock3, ExternalLink, Plus, X } from 'lucide-react';
@@ -18,6 +19,7 @@ import { ImageDropzone } from '@/components/images/image-dropzone';
 import { UploadQueue } from '@/components/images/upload-queue';
 import { useUploadQueue } from '@/components/images/use-upload-queue';
 import { Alert } from '@/components/common/alert';
+import { ErrorState } from '@/components/common/error-state';
 import { FormField } from '@/components/common/form-field';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +33,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { applyServerErrors } from '@/lib/form-errors';
 import { invalidateTaskData } from '@/lib/query-keys';
 import { STATUS_META } from '@/lib/task-meta';
@@ -38,7 +41,8 @@ import { cn } from '@/lib/utils';
 
 import { setTaskImages } from '../cache';
 import { formatClock, timeOptions } from '../format';
-import { useCreateTask, useUpdateTask } from '../hooks';
+import { useCreateTask, useTask, useUpdateTask } from '../hooks';
+import { remapReminderErrors } from '../reminders';
 import {
   taskFormSchema,
   toCreateInput,
@@ -48,12 +52,13 @@ import {
   type TaskFormValues,
 } from '../task-form';
 import { PriorityPicker, StatusPicker } from './option-picker';
+import { RemindersField } from './reminders-field';
 
 export interface TaskFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** The task to edit; omit to create a new one. */
-  task?: TaskDto | null;
+  /** The task to edit; omit to create a new one. Its reminders are loaded when not included. */
+  task?: TaskDto | TaskDetailsDto | null;
   /** Pre-selected status when creating (board quick add). */
   defaultStatus?: TaskStatus;
   /** Pre-filled due date (`yyyy-MM-dd`) when creating, e.g. from the calendar. */
@@ -67,6 +72,11 @@ const textareaClass =
   'block min-h-24 w-full resize-y rounded-input border-[1.5px] border-transparent bg-fill px-3.5 py-3 text-base leading-relaxed text-foreground transition-[background-color,border-color,box-shadow] duration-150 outline-none placeholder:text-muted-foreground focus-visible:border-primary focus-visible:bg-card focus-visible:shadow-[0_0_0_4px_color-mix(in_oklab,var(--primary)_16%,transparent)] disabled:opacity-60 aria-invalid:border-danger aria-invalid:bg-[color-mix(in_oklab,var(--danger)_6%,var(--card))] sm:text-sm';
 
 type Phase = 'form' | 'uploading' | 'partial';
+
+type EditableTask = TaskDto & { reminders: TaskReminderDto[] };
+
+const withReminders = (task: TaskDto | TaskDetailsDto): task is TaskDetailsDto =>
+  'reminders' in task && Array.isArray(task.reminders);
 
 /**
  * Create / edit dialog (spec §16). One component for both; images can be attached when creating
@@ -92,16 +102,66 @@ export function TaskFormDialog({
   if (task && task !== shownTask) setShownTask(task);
   const current = task ?? (open ? null : shownTask);
 
+  // Lists only carry a summary: load the task's reminders before editing it.
+  const needsDetails = current !== null && !withReminders(current);
+  const details = useTask(current?.id ?? '', open && needsDetails);
+  const editable: EditableTask | null =
+    current === null ? null : withReminders(current) ? current : (details.data ?? null);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <TaskFormContent
-        key={`${current?.id ?? 'new'}-${session}`}
-        task={current}
-        defaultStatus={defaultStatus}
-        defaultDueDate={defaultDueDate}
-        onClose={() => onOpenChange(false)}
-      />
+      {current !== null && editable === null ? (
+        <TaskFormLoading
+          error={details.isError ? details.error : null}
+          retrying={details.isFetching}
+          onRetry={() => void details.refetch()}
+        />
+      ) : (
+        <TaskFormContent
+          key={`${editable?.id ?? 'new'}-${session}`}
+          task={editable}
+          defaultStatus={defaultStatus}
+          defaultDueDate={defaultDueDate}
+          onClose={() => onOpenChange(false)}
+        />
+      )}
     </Dialog>
+  );
+}
+
+/** Shown for the moment it takes to load a task's reminders before editing. */
+function TaskFormLoading({
+  error,
+  retrying,
+  onRetry,
+}: {
+  error: unknown;
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <DialogContent className="sm:max-w-[560px]" aria-busy={error ? undefined : true}>
+      <DialogHeader>
+        <DialogTitle>Edit task</DialogTitle>
+        <DialogDescription className="sr-only">Loading the task.</DialogDescription>
+      </DialogHeader>
+      {error ? (
+        <ErrorState
+          bare
+          title="Couldn't load this task"
+          error={error}
+          retrying={retrying}
+          onRetry={onRetry}
+        />
+      ) : (
+        <div aria-hidden="true" className="flex flex-col gap-4">
+          <Skeleton className="h-12 w-full rounded-input" />
+          <Skeleton className="h-24 w-full rounded-input" />
+          <Skeleton className="h-11 w-full rounded-input" />
+          <Skeleton className="h-11 w-full rounded-input" />
+        </div>
+      )}
+    </DialogContent>
   );
 }
 
@@ -111,7 +171,7 @@ function TaskFormContent({
   defaultDueDate,
   onClose,
 }: {
-  task: TaskDto | null;
+  task: EditableTask | null;
   defaultStatus?: TaskStatus;
   defaultDueDate?: string;
   onClose: () => void;
@@ -176,7 +236,7 @@ function TaskFormContent({
         toast.success('Changes saved', { description: `“${values.title.trim()}” was updated.` });
         onClose();
       } catch (error) {
-        applyServerErrors(form, error);
+        applyServerErrors(form, remapReminderErrors(error));
       }
       return;
     }
@@ -185,7 +245,7 @@ function TaskFormContent({
     try {
       saved = await createTask.mutateAsync(toCreateInput(values));
     } catch (error) {
-      applyServerErrors(form, error);
+      applyServerErrors(form, remapReminderErrors(error));
       return;
     }
 
@@ -366,6 +426,8 @@ function TaskFormContent({
                 />
               </FormField>
             </div>
+
+            <RemindersField form={form} locked={locked} dueDate={dueDate} dueTime={dueTime} />
 
             {!editing ? (
               <div className="flex flex-col">

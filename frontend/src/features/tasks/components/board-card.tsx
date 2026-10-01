@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 
 import { formatDateTime, formatRelativeShort } from '../format';
 import { DueLabel } from './due-label';
+import { ReminderCount } from './reminder-count';
 
 export interface BoardCardProps {
   task: TaskDto;
@@ -109,6 +110,7 @@ export function BoardCard({
               {task.imageCount}
             </span>
           ) : null}
+          <ReminderCount count={task.reminderCount} />
           {done && task.completedAt ? (
             <DoneLabel completedAt={task.completedAt} />
           ) : (

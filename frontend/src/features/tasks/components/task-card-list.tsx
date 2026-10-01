@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 
 import { CompletionToggle } from './completion-toggle';
 import { DueLabel } from './due-label';
+import { ReminderCount } from './reminder-count';
 import { TaskRowMenu, type TaskActions } from './task-row-menu';
 
 /** Phone layout of the task list: one card per task (spec §14.9). */
@@ -68,6 +69,7 @@ export function TaskCardList({
                       {task.imageCount}
                     </span>
                   ) : null}
+                  <ReminderCount count={task.reminderCount} />
                 </div>
               </div>
               <TaskRowMenu task={task} actions={actions} className="relative z-10 -mt-1 -mr-1" />

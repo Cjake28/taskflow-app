@@ -21,6 +21,7 @@ import { formatDateTime, formatRelativeShort } from '../format';
 import type { ListSortField, SortOrder } from '../url-state';
 import { CompletionToggle } from './completion-toggle';
 import { DueLabel } from './due-label';
+import { ReminderCount } from './reminder-count';
 import type { TaskActions } from './task-row-menu';
 
 export interface TaskTableProps {
@@ -197,7 +198,7 @@ export function TaskTable({
                   >
                     {task.title}
                   </Link>
-                  {task.description || task.imageCount > 0 ? (
+                  {task.description || task.imageCount > 0 || task.reminderCount > 0 ? (
                     <p className="mt-0.5 flex items-center gap-2 text-[12.5px] text-muted-foreground">
                       {task.description ? (
                         <span className="truncate">{task.description}</span>
@@ -211,6 +212,7 @@ export function TaskTable({
                           {task.imageCount}
                         </span>
                       ) : null}
+                      <ReminderCount count={task.reminderCount} className="shrink-0" />
                     </p>
                   ) : null}
                 </td>

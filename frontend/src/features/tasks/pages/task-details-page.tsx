@@ -27,6 +27,7 @@ import { TaskActivityList } from '../components/task-activity-list';
 import { TaskFormDialog } from '../components/task-form-dialog';
 import { TaskImages } from '../components/task-images';
 import { TaskMetaPanel } from '../components/task-meta-panel';
+import { TaskRemindersCard } from '../components/task-reminders-card';
 import { useTask, useToggleComplete, useUpdateTask } from '../hooks';
 import { tasksListHref } from '../last-list';
 
@@ -253,7 +254,7 @@ function TaskDetails({ task, onDeleted }: { task: TaskDetailsDto; onDeleted: () 
         <Card title="Description" className="lg:col-start-1">
           <Description text={task.description} />
         </Card>
-        <div className="lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:self-start">
+        <div className="flex flex-col gap-5 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:self-start">
           <TaskMetaPanel
             task={task}
             onStatusChange={(status) =>
@@ -263,6 +264,7 @@ function TaskDetails({ task, onDeleted }: { task: TaskDetailsDto; onDeleted: () 
               updateTask.mutate({ id: task.id, input: { priority }, optimistic: true })
             }
           />
+          <TaskRemindersCard reminders={task.reminders} onEdit={() => setEditing(true)} />
         </div>
         <div className="lg:col-start-1">
           <TaskImages task={task} />
