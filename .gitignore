@@ -16,3 +16,6 @@ backend/storage/
 !.vscode/extensions.json
 test-results/
 playwright-report/
+
+# Cloudflare Wrangler local state
+.wrangler/

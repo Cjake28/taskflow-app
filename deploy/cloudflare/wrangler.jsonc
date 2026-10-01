@@ -1,0 +1,47 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "taskflow",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+
+  // The React app, built with `npm run build -w @taskflow/frontend`.
+  "assets": {
+    "directory": "../../frontend/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+
+  // The API image (Dockerfile next to this file, built from the repository root).
+  "containers": [
+    {
+      "class_name": "TaskflowApi",
+      "image": "./Dockerfile",
+      "image_build_context": "../..",
+      "instance_type": "basic",
+      "max_instances": 1,
+    },
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "API", "class_name": "TaskflowApi" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TaskflowApi"] }],
+
+  // Every 5 minutes: keep the API container awake so reminders go out on time.
+  "triggers": { "crons": ["*/5 * * * *"] },
+
+  "routes": [{ "pattern": "taskflow.boats", "custom_domain": true }],
+
+  // Non-secret settings. Secrets are set with `wrangler secret put` (see README.md here).
+  "vars": {
+    "FRONTEND_URL": "https://taskflow.boats",
+    "STORAGE_DRIVER": "r2",
+    "R2_ACCOUNT_ID": "<cloudflare-account-id>",
+    "R2_BUCKET": "taskflow-images",
+    "SMTP_HOST": "smtp.gmail.com",
+    "SMTP_PORT": "465",
+    "SMTP_SECURE": "true",
+  },
+
+  "observability": { "enabled": true },
+}
