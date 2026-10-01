@@ -1,18 +1,9 @@
-import { useState } from 'react';
-import {
-  CalendarDays,
-  History,
-  LayoutDashboard,
-  ListTodo,
-  LogOut,
-  UserRound,
-  type LucideIcon,
-} from 'lucide-react';
+import { CalendarDays, History, LayoutDashboard, ListTodo, type LucideIcon } from 'lucide-react';
 import { Link, NavLink } from 'react-router';
 
 import { Avatar } from '@/components/common/avatar';
 import { Logo } from '@/components/common/logo';
-import { useCurrentUser, useAuth } from '@/features/auth/use-auth';
+import { useCurrentUser } from '@/features/auth/use-auth';
 import { useOpenTaskCount } from '@/features/dashboard/hooks';
 import { cn } from '@/lib/utils';
 
@@ -27,24 +18,19 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/tasks', label: 'Tasks', icon: ListTodo },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays },
   { to: '/activity', label: 'Activity', icon: History },
-  { to: '/profile', label: 'Profile', icon: UserRound },
 ];
 
 const itemClass =
   'flex items-center gap-3 rounded-full px-3.5 py-[11px] text-sm font-semibold transition-colors focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none [&_svg]:size-[18px] [&_svg]:shrink-0';
 
-/** Floating white sidebar (desktop): logo, primary navigation, user card and a labelled Log out. */
+/**
+ * Floating white sidebar (desktop): logo, primary navigation and the user card, which is the
+ * way to the profile (Log out lives there).
+ */
 export function Sidebar({ className }: { className?: string }) {
   const user = useCurrentUser();
-  const { logout } = useAuth();
-  const [loggingOut, setLoggingOut] = useState(false);
   // Same query as the dashboard stats, so the count updates whenever task data is invalidated.
   const openCount = useOpenTaskCount();
-
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    await logout();
-  };
 
   return (
     <aside
@@ -92,32 +78,26 @@ export function Sidebar({ className }: { className?: string }) {
         ))}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-2">
-        <Link
-          to="/profile"
-          className="flex items-center gap-2.5 rounded-tile bg-fill p-2.5 transition-colors hover:bg-[color-mix(in_oklab,var(--fill),var(--foreground)_4%)] focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none"
-        >
-          <Avatar user={user} />
-          <span className="min-w-0">
-            <span className="block truncate text-[13px] font-bold">
-              {user.firstName} {user.lastName}
-            </span>
-            <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
+      <NavLink
+        to="/profile"
+        aria-label={`Your profile: ${user.firstName} ${user.lastName}`}
+        className={({ isActive }) =>
+          cn(
+            'mt-auto flex items-center gap-2.5 rounded-tile p-2.5 transition-colors focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none',
+            isActive
+              ? '[--tint:var(--primary)] bg-tint-soft shadow-[inset_0_0_0_1.5px_color-mix(in_oklab,var(--primary)_35%,transparent)]'
+              : 'bg-fill hover:bg-[color-mix(in_oklab,var(--fill),var(--foreground)_4%)]',
+          )
+        }
+      >
+        <Avatar user={user} />
+        <span className="min-w-0">
+          <span className="block truncate text-[13px] font-bold">
+            {user.firstName} {user.lastName}
           </span>
-        </Link>
-        <button
-          type="button"
-          onClick={() => void handleLogout()}
-          disabled={loggingOut}
-          className={cn(
-            itemClass,
-            'cursor-pointer text-muted-foreground hover:bg-[color-mix(in_oklab,var(--danger)_9%,var(--card))] hover:text-danger disabled:cursor-default disabled:opacity-60',
-          )}
-        >
-          <LogOut aria-hidden="true" />
-          {loggingOut ? 'Logging out…' : 'Log out'}
-        </button>
-      </div>
+          <span className="block truncate text-xs text-muted-foreground">@{user.username}</span>
+        </span>
+      </NavLink>
     </aside>
   );
 }
