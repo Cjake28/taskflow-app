@@ -14,7 +14,7 @@ function toQuery(params: TaskListParams): string {
 export const dashboardApi = {
   stats: (signal?: AbortSignal) => api.get<DashboardStats>('/dashboard/stats', { signal }),
   recentActivity: (limit: number, signal?: AbortSignal) =>
-    api.get<ActivityDto[]>(`/activities?limit=${limit}`, { signal }),
+    api.get<ActivityDto[]>(`/activities?pageSize=${limit}`, { signal }),
   tasks: (params: TaskListParams, signal?: AbortSignal): Promise<ApiEnvelope<TaskDto[]>> =>
     requestEnvelope<TaskDto[]>(`/tasks?${toQuery(params)}`, { signal }),
 };

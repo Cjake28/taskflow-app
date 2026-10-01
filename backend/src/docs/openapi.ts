@@ -631,9 +631,29 @@ const paths: Record<string, Json> = {
   '/activities': {
     get: {
       tags: ['Dashboard'],
-      summary: 'Recent activity across your tasks',
-      parameters: [query('limit', { type: 'integer', minimum: 1, maximum: 50, default: 10 }, 'Rows')],
-      responses: { 200: ok(list(ref('Activity'))), ...errors(400, 401) },
+      summary: 'Activity history across your tasks (newest first), with filters',
+      parameters: [
+        query(
+          'action',
+          { type: 'string', example: 'CREATED,STATUS_CHANGED' },
+          'Comma-separated: CREATED, UPDATED, STATUS_CHANGED, DELETED, IMAGE_ADDED, IMAGE_REMOVED',
+        ),
+        query('from', DATE_TIME, 'On or after (ISO datetime)'),
+        query('to', DATE_TIME, 'On or before (ISO datetime)'),
+        query('search', { type: 'string' }, 'Task title contains (case-insensitive)'),
+        query('page', { type: 'integer', minimum: 1, default: 1 }, 'Page number'),
+        query('pageSize', { type: 'integer', minimum: 1, maximum: 100, default: 20 }, 'Page size'),
+      ],
+      responses: {
+        200: {
+          description: 'OK',
+          content: json({
+            type: 'object',
+            properties: { data: list(ref('Activity')), meta: ref('PaginationMeta') },
+          }),
+        },
+        ...errors(400, 401),
+      },
     },
   },
 };

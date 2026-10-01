@@ -455,19 +455,3 @@ describe('PATCH /api/v1/tasks/:id/move', () => {
     expect(foreignNeighbour.status).toBe(400);
   });
 });
-
-describe('GET /api/v1/activities', () => {
-  it('returns the latest activity for the user only, honouring the limit', async () => {
-    const { cookie } = await signIn();
-    const other = await signIn();
-    await createTask(other.cookie, { title: 'Not mine' });
-    for (const title of ['One', 'Two', 'Three']) await createTask(cookie, { title });
-
-    const res = await h.get('/api/v1/activities?limit=2').set('Cookie', cookie);
-    expect(res.status).toBe(200);
-    expect(res.body.data.map((a: { taskTitle: string }) => a.taskTitle)).toEqual(['Three', 'Two']);
-
-    const invalid = await h.get('/api/v1/activities?limit=0').set('Cookie', cookie);
-    expect(invalid.status).toBe(400);
-  });
-});

@@ -64,7 +64,7 @@ It was built for a full-stack developer technical assessment. The required stack
 
 - Dashboard:
   - totals by status and priority, overdue, due soon, and completion rate, all computed in the database;
-  - a week agenda;
+  - a week agenda that expands into a full **month calendar**;
   - recent activity.
 - Tasks have a title, description, status (To Do / In Progress / Completed), priority (Low / Medium / High), a due date with an optional time, and created, updated and completed timestamps.
 - Views:
@@ -76,7 +76,9 @@ It was built for a full-stack developer technical assessment. The required stack
   - converted to WebP with sharp;
   - private (served only to their owner);
   - removal can be undone during a retention period.
-- **Activity history** per task and across the account.
+- **Calendar page:** a month view of tasks by due date, with arrow-key navigation, a selected-day timeline and "Add" on that day.
+- **Activity page:** the full history across tasks, grouped by day, with before → after values. Filters by time range (today, 7 or 30 days, custom) and type (created, edited, status, images, deleted), plus title search, all kept in the URL.
+- **Activity history** per task as well.
 - Profile: view and edit names, username and email (with uniqueness checks; changing the email needs the current password). You can also manage your avatar, password, sessions and connected accounts.
 - Light and dark themes, a responsive layout (sidebar on desktop, bottom tab bar on phones), keyboard shortcuts, and loading, empty, error and success states throughout.
 
@@ -298,7 +300,7 @@ REST API under `/api/v1`, documented interactively at **`/api/docs`** (OpenAPI 3
 | Profile   | `GET/PATCH /users/me`, `GET/POST/DELETE /users/me/email`, `POST /users/me/email/verify`, `POST /users/me/email/resend`, `PATCH /users/me/password`, `PUT/DELETE /users/me/avatar`, `GET /users/me/sessions`, `DELETE /users/me/sessions/:id`, `GET /users/me/accounts`, `DELETE /users/me/accounts/:provider` |
 | Tasks     | `GET/POST /tasks` (search, `status`, `priority`, `overdue`, `dueFrom`, `dueTo`, `sortBy`, `sortOrder`, `page`, `pageSize`), `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/move`, `GET /tasks/:id/activities`                                                                                               |
 | Images    | `POST /tasks/:id/images`, `DELETE /tasks/:id/images/:imageId`, `POST /tasks/:id/images/:imageId/restore`, `GET /images/:id?variant=display\|thumb`                                                                                                                                                            |
-| Dashboard | `GET /dashboard/stats`, `GET /activities?limit=`                                                                                                                                                                                                                                                              |
+| Dashboard | `GET /dashboard/stats`, `GET /activities` (`action`, `from`, `to`, `search`, `page`, `pageSize`)                                                                                                                                                                                                              |
 | System    | `GET /health`                                                                                                                                                                                                                                                                                                 |
 
 State-changing requests must send an `Origin` header that matches `FRONTEND_URL` (browsers do this automatically). With curl, add `-H "Origin: http://localhost:5173"`.

@@ -1,6 +1,8 @@
 import type { TaskDto } from '@taskflow/shared';
 import { addDays, format, isSameDay, isSameWeek, startOfDay, startOfWeek } from 'date-fns';
 
+import { dayKey } from '@/lib/task-days';
+
 /*
  * Agenda helpers (spec §6.5.1): one request fetches the whole local week, then the
  * client groups tasks by local day for the week-strip dots and the selected day's timeline.
@@ -8,10 +10,7 @@ import { addDays, format, isSameDay, isSameWeek, startOfDay, startOfWeek } from 
 
 const WEEK = { weekStartsOn: 1 } as const;
 
-/** `yyyy-MM-dd` of a local calendar day; stable key for grouping and element ids. */
-export function dayKey(date: Date): string {
-  return format(date, 'yyyy-MM-dd');
-}
+export { dayKey, groupByLocalDay } from '@/lib/task-days';
 
 /** Monday 00:00 (local) of the week containing `day`. */
 export function weekStart(day: Date): Date {
@@ -31,23 +30,6 @@ export function isCurrentWeek(day: Date, now: Date = new Date()): boolean {
 function byDueDate(a: TaskDto, b: TaskDto): number {
   const diff = Date.parse(a.dueDate ?? '') - Date.parse(b.dueDate ?? '');
   return diff !== 0 ? diff : a.title.localeCompare(b.title);
-}
-
-/**
- * Groups tasks by the local day of their due date. Timed tasks sort by time; all-day tasks
- * (stored at 23:59:59.999, see lib/due-date) naturally land at the end of their day.
- */
-export function groupByLocalDay(tasks: readonly TaskDto[]): Map<string, TaskDto[]> {
-  const groups = new Map<string, TaskDto[]>();
-  for (const task of tasks) {
-    if (!task.dueDate) continue;
-    const key = dayKey(new Date(task.dueDate));
-    const group = groups.get(key);
-    if (group) group.push(task);
-    else groups.set(key, [task]);
-  }
-  for (const group of groups.values()) group.sort(byDueDate);
-  return groups;
 }
 
 export interface WeekDaySummary {

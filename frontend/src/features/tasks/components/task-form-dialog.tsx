@@ -56,6 +56,8 @@ export interface TaskFormDialogProps {
   task?: TaskDto | null;
   /** Pre-selected status when creating (board quick add). */
   defaultStatus?: TaskStatus;
+  /** Pre-filled due date (`yyyy-MM-dd`) when creating, e.g. from the calendar. */
+  defaultDueDate?: string;
 }
 
 const fieldShell =
@@ -70,7 +72,13 @@ type Phase = 'form' | 'uploading' | 'partial';
  * Create / edit dialog (spec §16). One component for both; images can be attached when creating
  * and upload right after the task exists.
  */
-export function TaskFormDialog({ open, onOpenChange, task, defaultStatus }: TaskFormDialogProps) {
+export function TaskFormDialog({
+  open,
+  onOpenChange,
+  task,
+  defaultStatus,
+  defaultDueDate,
+}: TaskFormDialogProps) {
   // A fresh form (and upload queue) every time the dialog opens; the close animation keeps the
   // last state on screen.
   const [session, setSession] = useState(0);
@@ -90,6 +98,7 @@ export function TaskFormDialog({ open, onOpenChange, task, defaultStatus }: Task
         key={`${current?.id ?? 'new'}-${session}`}
         task={current}
         defaultStatus={defaultStatus}
+        defaultDueDate={defaultDueDate}
         onClose={() => onOpenChange(false)}
       />
     </Dialog>
@@ -99,10 +108,12 @@ export function TaskFormDialog({ open, onOpenChange, task, defaultStatus }: Task
 function TaskFormContent({
   task,
   defaultStatus,
+  defaultDueDate,
   onClose,
 }: {
   task: TaskDto | null;
   defaultStatus?: TaskStatus;
+  defaultDueDate?: string;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -120,7 +131,7 @@ function TaskFormContent({
   const form = useForm<TaskFormInput, unknown, TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     mode: 'onTouched',
-    defaultValues: toFormValues(task, { status: defaultStatus }),
+    defaultValues: toFormValues(task, { status: defaultStatus, dueDate: defaultDueDate }),
   });
   const { errors, isSubmitting } = form.formState;
   const description = useWatch({ control: form.control, name: 'description' }) ?? '';
