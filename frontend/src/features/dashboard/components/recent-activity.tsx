@@ -1,4 +1,5 @@
-import { History } from 'lucide-react';
+import { ChevronRight, History } from 'lucide-react';
+import { Link } from 'react-router';
 
 import { EmptyState } from '@/components/common/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +13,19 @@ export function RecentActivity({ className }: { className?: string }) {
   const now = new Date();
 
   return (
-    <DashboardCard title="Recent activity" className={className}>
+    <DashboardCard
+      title="Recent activity"
+      className={className}
+      aside={
+        <Link
+          to="/activity"
+          className="inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-[13px] font-semibold text-muted-foreground transition-colors hover:bg-fill hover:text-foreground"
+        >
+          View all
+          <ChevronRight aria-hidden="true" className="size-[15px]" />
+        </Link>
+      }
+    >
       {query.isPending ? (
         <ul aria-hidden="true" className="-my-[9px]">
           {Array.from({ length: 5 }, (_, index) => (

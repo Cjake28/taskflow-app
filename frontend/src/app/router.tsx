@@ -11,7 +11,7 @@ import { RouteError } from './route-error';
  * Routes (spec §14.3). Pages are lazy-loaded; guards and layouts stay in the main chunk.
  *   public-only  /login /register /register/verify /forgot-password
  *   neutral      /reset-password  (an emailed link must work with or without a session)
- *   protected    / → /dashboard, /dashboard, /tasks, /tasks/:id, /profile
+ *   protected    / → /dashboard, /dashboard, /tasks, /tasks/:id, /calendar, /activity, /profile
  */
 export const router = createBrowserRouter([
   {
@@ -83,6 +83,20 @@ export const router = createBrowserRouter([
                 lazy: {
                   Component: async () =>
                     (await import('@/features/tasks/pages/task-details-page')).TaskDetailsPage,
+                },
+              },
+              {
+                path: 'calendar',
+                lazy: {
+                  Component: async () =>
+                    (await import('@/features/calendar/pages/calendar-page')).CalendarPage,
+                },
+              },
+              {
+                path: 'activity',
+                lazy: {
+                  Component: async () =>
+                    (await import('@/features/activity/pages/activity-page')).ActivityPage,
                 },
               },
               {

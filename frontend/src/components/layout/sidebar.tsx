@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { LayoutDashboard, ListTodo, LogOut, UserRound, type LucideIcon } from 'lucide-react';
+import {
+  CalendarDays,
+  History,
+  LayoutDashboard,
+  ListTodo,
+  LogOut,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react';
 import { Link, NavLink } from 'react-router';
 
 import { Avatar } from '@/components/common/avatar';
@@ -17,6 +25,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/tasks', label: 'Tasks', icon: ListTodo },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { to: '/activity', label: 'Activity', icon: History },
   { to: '/profile', label: 'Profile', icon: UserRound },
 ];
 

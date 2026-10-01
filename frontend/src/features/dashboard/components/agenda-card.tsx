@@ -1,6 +1,6 @@
 import { useId, useMemo, useState } from 'react';
 import { format, isSameDay, isSameYear, startOfDay } from 'date-fns';
-import { CalendarCheck2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { CalendarCheck2, ChevronLeft, ChevronRight, Maximize2, Plus } from 'lucide-react';
 import { Link } from 'react-router';
 
 import { IconArt } from '@/components/common/icon-art';
@@ -116,6 +116,14 @@ export function AgendaCard({ className }: { className?: string }) {
           </Button>
           <Button variant="ghost" size="icon-sm" aria-label="Next week" onClick={() => moveBy(7)}>
             <ChevronRight aria-hidden="true" />
+          </Button>
+          <Button asChild variant="ghost" size="icon-sm" title="Open the full calendar">
+            <Link
+              to={`/calendar?month=${format(selected, 'yyyy-MM')}&day=${selectedKey}`}
+              aria-label="Open the full calendar"
+            >
+              <Maximize2 aria-hidden="true" />
+            </Link>
           </Button>
         </>
       }
