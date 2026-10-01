@@ -3,7 +3,7 @@
 The shortest way to get TaskFlow running on your computer. Copy and paste the commands in order.
 
 - **Option A: with Docker.** Easiest: 3 commands.
-- **Option B: without Docker.** You install PostgreSQL and Redis yourself.
+- **Option B: without Docker.** You install PostgreSQL, Redis and Mailpit yourself.
 - **Optional extras:** [real emails through Gmail](#7-optional-send-real-emails-gmail-smtp) and [Google / GitHub sign-in](#8-optional-google-and-github-sign-in).
 
 Everything is preconfigured for local use: database user and password, Redis password, email inbox, ports and demo accounts. You don't have to edit any settings (except one line in Option B, explained there).
