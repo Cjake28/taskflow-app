@@ -3,6 +3,8 @@ import {
   closestCorners,
   DndContext,
   DragOverlay,
+  getFirstCollision,
+  KeyboardCode,
   KeyboardSensor,
   MeasuringStrategy,
   MouseSensor,
@@ -14,6 +16,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
+  type KeyboardCoordinateGetter,
   type ScreenReaderInstructions,
   type UniqueIdentifier,
 } from '@dnd-kit/core';
@@ -71,6 +74,47 @@ const screenReaderInstructions: ScreenReaderInstructions = {
 /** Space picks up and drops; Enter is left free to open the card. */
 const keyboardCodes = { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] };
 
+/**
+ * ↑/↓ move within a column (sortable default). ←/→ jump to the nearest card of the next column
+ * (or the column itself when it is empty): the default getter only looks for droppables
+ * overlapping the dragged card's row, which keeps it in its own column.
+ */
+const boardKeyboardCoordinates: KeyboardCoordinateGetter = (event, args) => {
+  if (event.code !== KeyboardCode.Left && event.code !== KeyboardCode.Right) {
+    return sortableKeyboardCoordinates(event, args);
+  }
+  event.preventDefault();
+  const { active, collisionRect, droppableRects, droppableContainers, over } = args.context;
+  if (!active || !collisionRect) return undefined;
+
+  const candidates = droppableContainers.getEnabled().filter((entry) => {
+    const rect = droppableRects.get(entry.id);
+    if (!rect || entry.id === active.id) return false;
+    const data = entry.data.current as { type?: string; count?: number } | undefined;
+    // Prefer cards; a column only counts when it has none to land on.
+    if (data?.type === 'column' && (data.count ?? 0) > 0) return false;
+    return event.code === KeyboardCode.Right
+      ? rect.left >= collisionRect.left + collisionRect.width
+      : rect.left + rect.width <= collisionRect.left;
+  });
+  const collisions = closestCorners({
+    active,
+    collisionRect,
+    droppableRects,
+    droppableContainers: candidates,
+    pointerCoordinates: null,
+  });
+  let targetId = getFirstCollision(collisions, 'id');
+  if (targetId === over?.id && collisions.length > 1) targetId = collisions[1]?.id ?? null;
+  if (targetId == null) return undefined;
+
+  const target = droppableContainers.get(targetId);
+  const rect = target?.rect.current;
+  if (!rect) return undefined;
+  const isColumn = (target.data.current as { type?: string } | undefined)?.type === 'column';
+  return isColumn ? { x: rect.left + 14, y: rect.top + 60 } : { x: rect.left, y: rect.top };
+};
+
 function SortableCard({
   task,
   status,
@@ -115,6 +159,7 @@ function SortableCard({
         }
       }}
       aria-label={`${task.title}, ${STATUS_META[status].label}`}
+      data-card-id={task.id}
       className={cn(
         'touch-manipulation rounded-[18px] outline-none focus-visible:ring-4 focus-visible:ring-ring/40',
         isDragging ? 'cursor-grabbing' : 'cursor-grab',
@@ -146,7 +191,10 @@ function Column({
   onAdd: (status: TaskStatus) => void;
   listHref: (status: TaskStatus) => string;
 }) {
-  const { setNodeRef } = useDroppable({ id: status, data: { type: 'column' } });
+  const { setNodeRef } = useDroppable({
+    id: status,
+    data: { type: 'column', count: tasks.length },
+  });
   const meta = STATUS_META[status];
   const Icon = meta.icon;
   const headingId = `board-column-${status}`;
@@ -236,21 +284,26 @@ function Column({
  */
 export function KanbanBoard({ columns, onMove, onAdd, listHref }: KanbanBoardProps) {
   const [drag, setDrag] = useState<DragState | null>(null);
-
-  const serverColumns = useMemo<BoardColumns>(
-    () => ({
-      TODO: columns.TODO.tasks,
-      IN_PROGRESS: columns.IN_PROGRESS.tasks,
-      COMPLETED: columns.COMPLETED.tasks,
-    }),
-    [columns],
+  // After a drop, keep showing the dropped layout until the (optimistically updated) query data
+  // reaches this component; otherwise the card flashes back to its old column for a frame.
+  const [settling, setSettling] = useState<{ base: BoardColumns; columns: BoardColumns } | null>(
+    null,
   );
-  const visible = drag?.columns ?? serverColumns;
+
+  const todo = columns.TODO.tasks;
+  const inProgress = columns.IN_PROGRESS.tasks;
+  const completed = columns.COMPLETED.tasks;
+  const serverColumns = useMemo<BoardColumns>(
+    () => ({ TODO: todo, IN_PROGRESS: inProgress, COMPLETED: completed }),
+    [todo, inProgress, completed],
+  );
+  if (settling && settling.base !== serverColumns) setSettling(null);
+  const visible = drag?.columns ?? settling?.columns ?? serverColumns;
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates, keyboardCodes }),
+    useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates, keyboardCodes }),
   );
 
   const titleOf = (id: UniqueIdentifier) => {
@@ -297,7 +350,7 @@ export function KanbanBoard({ columns, onMove, onAdd, listHref }: KanbanBoardPro
     setDrag({ ...drag, columns: moveCard(drag.columns, activeId, to, index) });
   };
 
-  const onDragEnd = ({ active, over }: DragEndEvent) => {
+  const onDragEnd = ({ active, over, activatorEvent }: DragEndEvent) => {
     if (!drag) return;
     if (!over) {
       setDrag(null);
@@ -315,8 +368,17 @@ export function KanbanBoard({ columns, onMove, onAdd, listHref }: KanbanBoardPro
         final = { ...final, [container]: arrayMove(list, oldIndex, newIndex) };
     }
     const move = resolveMove(drag.origin, final, activeId);
-    if (move) onMove(move, final);
+    if (move) {
+      setSettling({ base: serverColumns, columns: final });
+      onMove(move, final);
+    }
     setDrag(null);
+    // A card dropped into another column is a new DOM node: give keyboard users their focus back.
+    if (activatorEvent instanceof KeyboardEvent) {
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>(`[data-card-id="${activeId}"]`)?.focus(),
+      );
+    }
   };
 
   const activeTask = drag
