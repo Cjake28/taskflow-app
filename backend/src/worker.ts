@@ -17,3 +17,11 @@ function shutdown(reason: string): void {
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('unhandledRejection', (reason) => {
+  container.logger.fatal({ err: reason }, 'Unhandled promise rejection');
+  shutdown('unhandledRejection');
+});
+process.on('uncaughtException', (err) => {
+  container.logger.fatal({ err }, 'Uncaught exception');
+  shutdown('uncaughtException');
+});
