@@ -73,7 +73,7 @@ export function TaskRemindersCard({
                     </p>
                   ) : null}
                   {reminder.message ? (
-                    <p className="mt-1.5 border-l-2 border-border pl-2.5 text-[13px] leading-normal break-words whitespace-pre-line">
+                    <p className="mt-1.5 rounded-input bg-fill px-2.5 py-1.5 text-[13px] leading-normal break-words whitespace-pre-line">
                       {reminder.message}
                     </p>
                   ) : null}
