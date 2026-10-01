@@ -6,12 +6,7 @@ import {
   type UpdateProfileData,
   type UserDto,
 } from '@taskflow/shared';
-import {
-  BadRequestException,
-  HttpException,
-  NotFoundException,
-  ValidationException,
-} from '../../common/exceptions';
+import { HttpException, NotFoundException, ValidationException } from '../../common/exceptions';
 import {
   BREACHED_PASSWORD_MESSAGE,
   type PasswordBreachChecker,
@@ -21,12 +16,10 @@ import { describeDevice, displayIp } from '../../common/utils/device';
 import { hashPassword, verifyPassword } from '../../common/utils/password';
 import { isUniqueViolation, type Db } from '../../database/prisma';
 import type { JobQueue } from '../../jobs/job-queue';
-import type { EmailVerificationService } from '../auth/email-verification.service';
 import type { SessionsService } from '../auth/sessions.service';
+import { assertCurrentPassword } from './current-password';
 import { assertEmailAndUsernameAvailable } from './user-uniqueness';
 import { toUserResponse } from './users.mapper';
-
-const WRONG_CURRENT_PASSWORD = 'Current password is incorrect';
 
 export class UsersService {
   constructor(
@@ -35,33 +28,17 @@ export class UsersService {
     private readonly jobs: JobQueue,
     private readonly breachChecker: PasswordBreachChecker,
     private readonly clock: Clock,
-    private readonly emailVerification: EmailVerificationService,
   ) {}
 
   async getProfile(userId: string): Promise<UserDto> {
     return toUserResponse(await this.findWithPassword(userId));
   }
 
+  /** Names and username; the email changes through the confirmed flow in EmailChangeService. */
   async updateProfile(userId: string, input: UpdateProfileData): Promise<UserDto> {
     const user = await this.findWithPassword(userId);
-    const emailChanged = input.email !== undefined && input.email !== user.email;
     const usernameChanged = input.username !== undefined && input.username !== user.username;
-
-    if (emailChanged) {
-      if (!user.passwordHash) {
-        throw new BadRequestException(
-          'Set a password before changing your email.',
-          ErrorCode.PASSWORD_NOT_SET,
-          [{ field: 'currentPassword', message: 'Set a password before changing your email' }],
-        );
-      }
-      await this.assertCurrentPassword(user.passwordHash, input.currentPassword, 'email');
-    }
-
-    const identity = {
-      ...(emailChanged ? { email: input.email } : {}),
-      ...(usernameChanged ? { username: input.username } : {}),
-    };
+    const identity = usernameChanged ? { username: input.username } : {};
     await assertEmailAndUsernameAvailable(this.prisma, identity, userId);
 
     const updated = await this.prisma.user
@@ -71,7 +48,6 @@ export class UsersService {
           ...(input.firstName !== undefined ? { firstName: input.firstName } : {}),
           ...(input.lastName !== undefined ? { lastName: input.lastName } : {}),
           ...(usernameChanged ? { username: input.username } : {}),
-          ...(emailChanged ? { email: input.email, emailVerifiedAt: null } : {}),
         },
         omit: { passwordHash: false },
       })
@@ -82,11 +58,6 @@ export class UsersService {
         }
         throw err;
       });
-    if (emailChanged) {
-      // Links sent to the previous address must not confirm the new one.
-      await this.emailVerification.invalidatePending(userId);
-      await this.emailVerification.requestVerification(userId);
-    }
     return toUserResponse(updated);
   }
 
@@ -97,7 +68,7 @@ export class UsersService {
   ): Promise<void> {
     const user = await this.findWithPassword(userId);
     if (user.passwordHash) {
-      await this.assertCurrentPassword(user.passwordHash, input.currentPassword, 'password');
+      await assertCurrentPassword(user.passwordHash, input.currentPassword, 'password');
       if (await verifyPassword(user.passwordHash, input.newPassword)) {
         throw new ValidationException([
           { field: 'newPassword', message: 'Choose a password different from your current one' },
@@ -159,28 +130,5 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User');
     return user;
-  }
-
-  private async assertCurrentPassword(
-    passwordHash: string,
-    currentPassword: string | undefined,
-    action: 'email' | 'password',
-  ): Promise<void> {
-    if (!currentPassword) {
-      throw new ValidationException([
-        {
-          field: 'currentPassword',
-          message: `Enter your current password to change your ${action}`,
-        },
-      ]);
-    }
-    // 400 (not 401): the client treats 401 as an expired session and would try to refresh.
-    if (!(await verifyPassword(passwordHash, currentPassword))) {
-      throw new BadRequestException(
-        `${WRONG_CURRENT_PASSWORD}.`,
-        ErrorCode.INVALID_CURRENT_PASSWORD,
-        [{ field: 'currentPassword', message: WRONG_CURRENT_PASSWORD }],
-      );
-    }
   }
 }

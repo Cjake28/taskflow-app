@@ -72,53 +72,14 @@ describe('PATCH /api/v1/users/me', () => {
     expect(unchanged.status).toBe(200);
   });
 
-  it('requires the current password to change the email', async () => {
+  it('does not change the email here (it has its own confirmed flow)', async () => {
     const { cookie } = await signIn({ email: 'old@example.com' });
-
-    const missing = await h
-      .patch('/api/v1/users/me')
-      .set('Cookie', cookie)
-      .send({ email: 'new@example.com' });
-    expect(missing.status).toBe(400);
-    expect(missing.body.error.details).toContainEqual({
-      field: 'currentPassword',
-      message: 'Enter your current password to change your email',
-    });
-
-    const wrong = await h
-      .patch('/api/v1/users/me')
-      .set('Cookie', cookie)
-      .send({ email: 'new@example.com', currentPassword: 'Wrong!Passw0rd' });
-    expect(wrong.status).toBe(400);
-    expect(wrong.body.error.code).toBe('INVALID_CURRENT_PASSWORD');
-
-    const ok = await h
-      .patch('/api/v1/users/me')
-      .set('Cookie', cookie)
-      .send({ email: 'New@Example.com', currentPassword: DEFAULT_PASSWORD });
-    expect(ok.status).toBe(200);
-    expect(ok.body.data.email).toBe('new@example.com');
-  });
-
-  it('rejects an email that belongs to someone else', async () => {
-    await createUser(h.container.prisma, { email: 'someone@example.com' });
-    const { cookie } = await signIn();
     const res = await h
       .patch('/api/v1/users/me')
       .set('Cookie', cookie)
-      .send({ email: 'someone@example.com', currentPassword: DEFAULT_PASSWORD });
-    expect(res.status).toBe(409);
-    expect(res.body.error.code).toBe('EMAIL_TAKEN');
-  });
-
-  it('asks OAuth-only users to set a password before changing the email', async () => {
-    const { cookie } = await signIn({ password: null });
-    const res = await h
-      .patch('/api/v1/users/me')
-      .set('Cookie', cookie)
-      .send({ email: 'new@example.com', currentPassword: 'x' });
+      .send({ email: 'new@example.com', currentPassword: DEFAULT_PASSWORD });
     expect(res.status).toBe(400);
-    expect(res.body.error.code).toBe('PASSWORD_NOT_SET');
+    expect(res.body.error.details).toContainEqual({ field: 'email', message: 'Unknown field' });
   });
 });
 

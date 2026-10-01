@@ -5,7 +5,7 @@ import {
   type RegisterData,
 } from '@taskflow/shared';
 import type { Redis } from 'ioredis';
-import { createHmac, randomInt, randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   HttpException,
@@ -13,6 +13,7 @@ import {
   ValidationException,
 } from '../../common/exceptions';
 import type { SessionMeta } from '../../common/http/request-meta';
+import { generateOtp, hashOtp, otpHashesMatch } from '../../common/security/otp';
 import {
   BREACHED_PASSWORD_MESSAGE,
   type PasswordBreachChecker,
@@ -116,9 +117,7 @@ export class RegistrationService {
     const record = await this.load(registrationId);
     if (!record) return;
 
-    const code = randomInt(0, 10 ** SIGNUP_OTP_LENGTH)
-      .toString()
-      .padStart(SIGNUP_OTP_LENGTH, '0');
+    const code = generateOtp(SIGNUP_OTP_LENGTH);
     await this.save(registrationId, { ...record, otpHash: this.hashCode(registrationId, code) });
     await this.redis.del(attemptsKey(registrationId));
     await this.emails.sendSignupCode(record, code, this.config.otpTtlMinutes);
@@ -169,7 +168,7 @@ export class RegistrationService {
       );
     }
 
-    if (!record.otpHash || !this.matches(record.otpHash, this.hashCode(registrationId, code))) {
+    if (!record.otpHash || !otpHashesMatch(record.otpHash, this.hashCode(registrationId, code))) {
       const left = this.config.maxAttempts - attempts;
       if (left <= 0) {
         await this.discard(registrationId, record.email);
@@ -242,16 +241,7 @@ export class RegistrationService {
   }
 
   private hashCode(registrationId: string, code: string): string {
-    // Keyed and bound to this sign-up: a leaked hash cannot be brute-forced offline.
-    return createHmac('sha256', this.config.otpSecret)
-      .update(`${registrationId}:${code}`)
-      .digest('hex');
-  }
-
-  private matches(expected: string, actual: string): boolean {
-    const a = Buffer.from(expected, 'hex');
-    const b = Buffer.from(actual, 'hex');
-    return a.length === b.length && timingSafeEqual(a, b);
+    return hashOtp(this.config.otpSecret, `signup:${registrationId}`, code);
   }
 
   private expired(): BadRequestException {

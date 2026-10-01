@@ -41,10 +41,6 @@ export const authApi = {
   resetPassword: (input: ResetPasswordData) =>
     api.post<void>('/auth/reset-password', input, { retryOnExpired: false }),
 
-  verifyEmail: (token: string) =>
-    api.post<void>('/auth/verify-email', { token }, { retryOnExpired: false }),
-  resendVerification: () => api.post<void>('/auth/verify-email/resend'),
-
   oauthProviders: () => api.get<OAuthProviderId[]>('/auth/oauth/providers'),
 };
 

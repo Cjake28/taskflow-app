@@ -1,14 +1,13 @@
-import { useMemo } from 'react';
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ErrorCode,
   FIELD_LIMITS,
-  emailSchema,
   nameSchema,
   usernameSchema,
   type UserDto,
 } from '@taskflow/shared';
-import { AtSign, LockKeyhole, Mail } from 'lucide-react';
+import { AtSign, LockKeyhole, Mail, MailCheck, MailWarning } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -16,74 +15,110 @@ import { z } from 'zod';
 
 import { Alert } from '@/components/common/alert';
 import { FormField } from '@/components/common/form-field';
-import { PasswordInput } from '@/components/common/password-input';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/features/auth/use-auth';
-import { isApiError } from '@/lib/api-client';
-import { ROOT_SERVER_ERROR, applyServerErrors } from '@/lib/form-errors';
+import { applyServerErrors } from '@/lib/form-errors';
 
 import { profileApi } from '../api';
-import {
-  buildProfileUpdate,
-  isEmailChange,
-  profileFormValues,
-  type ProfileFormValues,
-} from '../lib/profile-diff';
+import { usePendingEmailChange } from '../hooks';
+import { buildProfileUpdate, profileFormValues, type ProfileFormValues } from '../lib/profile-diff';
 import { profileTabHref } from '../lib/profile-tabs';
+import { ChangeEmailDialog } from './change-email-dialog';
 import { ProfileCard } from './profile-card';
 
-/** Shared field rules, plus "current password is required when the email changes". */
-function accountSchema(user: Pick<UserDto, 'email' | 'hasPassword'>) {
-  return z
-    .object({
-      firstName: nameSchema('First name', FIELD_LIMITS.firstName.max),
-      lastName: nameSchema('Last name', FIELD_LIMITS.lastName.max),
-      username: usernameSchema,
-      email: emailSchema,
-      currentPassword: z.string().max(FIELD_LIMITS.password.max),
-    })
-    .superRefine((data, ctx) => {
-      if (user.hasPassword && data.email !== user.email && !data.currentPassword) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['currentPassword'],
-          message: 'Enter your current password to change your email',
-        });
-      }
-    });
+const accountSchema = z.object({
+  firstName: nameSchema('First name', FIELD_LIMITS.firstName.max),
+  lastName: nameSchema('Last name', FIELD_LIMITS.lastName.max),
+  username: usernameSchema,
+});
+
+const CONFLICT_FIELDS = { [ErrorCode.USERNAME_TAKEN]: 'username' };
+
+/** The email, with its own confirmed change flow (a code is sent to the new address). */
+function EmailRow({ user }: { user: UserDto }) {
+  const pending = usePendingEmailChange();
+  const [open, setOpen] = useState(false);
+  const waiting = pending.data ?? null;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-[13px] font-bold">Email</span>
+      <div className="flex min-h-12 items-center gap-2.5 rounded-input bg-fill px-3.5">
+        <Mail aria-hidden="true" className="size-[18px] shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 text-sm wrap-anywhere">{user.email}</span>
+        {user.emailVerified ? (
+          <MailCheck
+            aria-label="Verified"
+            className="size-4 shrink-0 text-[color-mix(in_oklab,var(--status-done)_85%,var(--foreground))]"
+          />
+        ) : null}
+        {user.hasPassword ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="-mr-1.5 h-8"
+            aria-label="Change email"
+            onClick={() => setOpen(true)}
+          >
+            Change
+          </Button>
+        ) : (
+          <LockKeyhole aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        )}
+      </div>
+      {user.hasPassword ? null : (
+        <p className="text-[12.5px] text-muted-foreground">
+          You signed up with Google or GitHub.{' '}
+          <Link
+            to={profileTabHref('security')}
+            className="rounded-sm font-bold text-primary hover:underline"
+          >
+            Set a password
+          </Link>{' '}
+          to change your email.
+        </p>
+      )}
+      {waiting ? (
+        <Alert variant="info" icon={MailWarning}>
+          <span>
+            Waiting for the code sent to{' '}
+            <span className="font-extrabold wrap-anywhere">{waiting.email}</span>.{' '}
+          </span>
+          <button
+            type="button"
+            className="cursor-pointer rounded-sm font-extrabold underline-offset-2 hover:underline"
+            onClick={() => setOpen(true)}
+          >
+            Enter code
+          </button>
+        </Alert>
+      ) : null}
+      <ChangeEmailDialog user={user} open={open} onOpenChange={setOpen} pending={waiting} />
+    </div>
+  );
 }
 
-const CONFLICT_FIELDS = {
-  [ErrorCode.USERNAME_TAKEN]: 'username',
-  [ErrorCode.EMAIL_TAKEN]: 'email',
-  [ErrorCode.INVALID_CURRENT_PASSWORD]: 'currentPassword',
-};
-
-/** Personal information: only changed fields are sent; the password is asked for email changes. */
+/** Personal information: only changed fields are sent. */
 export function AccountForm({ user }: { user: UserDto }) {
   const { updateUser } = useAuth();
-  const schema = useMemo(() => accountSchema(user), [user]);
   const form = useForm({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(accountSchema),
     mode: 'onTouched',
     defaultValues: profileFormValues(user),
   });
   const { errors, isSubmitting } = form.formState;
 
   const watched = useWatch({ control: form.control });
-  // The shared username/email schemas pre-process their input, so RHF types those values loosely.
+  // The shared username schema pre-processes its input, so RHF types the value loosely.
   const text = (value: unknown, fallback: string) => (typeof value === 'string' ? value : fallback);
   const current: ProfileFormValues = {
     firstName: text(watched.firstName, user.firstName),
     lastName: text(watched.lastName, user.lastName),
     username: text(watched.username, user.username),
-    email: text(watched.email, user.email),
-    currentPassword: text(watched.currentPassword, ''),
   };
   const changes = buildProfileUpdate(user, current);
-  const emailChanging = isEmailChange(user, current.email);
-  const needsPassword = emailChanging && user.hasPassword;
 
   const onSubmit = form.handleSubmit(async (values) => {
     const update = buildProfileUpdate(user, values);
@@ -92,21 +127,8 @@ export function AccountForm({ user }: { user: UserDto }) {
       const updated = await profileApi.update(update);
       updateUser(updated);
       form.reset(profileFormValues(updated));
-      if (update.email) {
-        toast.success('Email updated', {
-          description: `We sent a confirmation link to ${updated.email}.`,
-        });
-      } else {
-        toast.success('Profile updated');
-      }
+      toast.success('Profile updated');
     } catch (error) {
-      if (isApiError(error, ErrorCode.PASSWORD_NOT_SET)) {
-        form.setError(ROOT_SERVER_ERROR, {
-          type: error.code,
-          message: 'Set a password in Security before changing your email.',
-        });
-        return;
-      }
       applyServerErrors(form, error, { codeFields: CONFLICT_FIELDS });
     }
   });
@@ -150,54 +172,7 @@ export function AccountForm({ user }: { user: UserDto }) {
           />
         </FormField>
 
-        <FormField
-          label="Email"
-          error={errors.email?.message}
-          hint={
-            user.hasPassword ? undefined : (
-              <>
-                You signed up with Google or GitHub.{' '}
-                <Link
-                  to={profileTabHref('security')}
-                  className="rounded-sm font-bold text-primary hover:underline"
-                >
-                  Set a password
-                </Link>{' '}
-                to change your email.
-              </>
-            )
-          }
-        >
-          <Input
-            type="email"
-            startIcon={<Mail />}
-            endSlot={
-              user.hasPassword ? undefined : (
-                <LockKeyhole aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-              )
-            }
-            autoComplete="email"
-            spellCheck={false}
-            readOnly={!user.hasPassword}
-            wrapperClassName={user.hasPassword ? undefined : 'opacity-75'}
-            {...form.register('email')}
-          />
-        </FormField>
-
-        {needsPassword ? (
-          <FormField
-            label="Current password"
-            labelHint="Required to change your email"
-            error={errors.currentPassword?.message}
-            className="animate-in duration-200 fade-in-0 slide-in-from-top-1"
-          >
-            <PasswordInput
-              autoComplete="current-password"
-              placeholder="Enter your current password"
-              {...form.register('currentPassword')}
-            />
-          </FormField>
-        ) : null}
+        <EmailRow user={user} />
 
         <div className="mt-1 flex flex-wrap items-center justify-end gap-2.5">
           {changes ? (

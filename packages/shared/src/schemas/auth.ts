@@ -45,14 +45,17 @@ export type RegisterData = z.output<typeof registerSchema>;
 /** Length of the one-time code emailed when an account is created. */
 export const SIGNUP_OTP_LENGTH = 6;
 
+/** A 6-digit one-time code (sign-up and email change). */
+export const otpCodeSchema = z
+  .string({ error: 'Enter the 6-digit code' })
+  .trim()
+  .regex(/^\d{6}$/, 'Enter the 6-digit code');
+
 const registrationIdSchema = z.uuid('This sign-up has expired. Please start again.');
 
 export const verifyRegistrationSchema = z.strictObject({
   registrationId: registrationIdSchema,
-  code: z
-    .string({ error: 'Enter the 6-digit code' })
-    .trim()
-    .regex(/^\d{6}$/, 'Enter the 6-digit code'),
+  code: otpCodeSchema,
 });
 
 export type VerifyRegistrationData = z.output<typeof verifyRegistrationSchema>;
@@ -111,15 +114,6 @@ export const resetPasswordSchema = z
 
 export type ResetPasswordInput = z.input<typeof resetPasswordSchema>;
 export type ResetPasswordData = z.output<typeof resetPasswordSchema>;
-
-const verificationTokenSchema = z
-  .string({ error: 'Verification token is required' })
-  .min(1, 'Verification token is required')
-  .max(256, 'Verification token is invalid');
-
-export const verifyEmailSchema = z.strictObject({ token: verificationTokenSchema });
-
-export type VerifyEmailData = z.output<typeof verifyEmailSchema>;
 
 export const FORGOT_PASSWORD_MESSAGE =
   'If an account with that email exists, password reset instructions have been sent.';
