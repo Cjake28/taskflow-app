@@ -21,7 +21,6 @@ import { SmtpMailTransport, type MailTransport } from './mail/mail.transport';
 import { ActivityService } from './modules/activities/activity.service';
 import { AuthCleanupService } from './modules/auth/auth-cleanup.service';
 import { AuthService } from './modules/auth/auth.service';
-import { EmailVerificationService } from './modules/auth/email-verification.service';
 import { PasswordResetService } from './modules/auth/password-reset.service';
 import { RegistrationService } from './modules/auth/registration.service';
 import { SessionsService } from './modules/auth/sessions.service';
@@ -33,6 +32,7 @@ import { OAuthService } from './modules/oauth/oauth.service';
 import type { OAuthProvider } from './modules/oauth/providers/oauth-provider';
 import { createOAuthProviders } from './modules/oauth/providers/provider-registry';
 import { TasksService } from './modules/tasks/tasks.service';
+import { EmailChangeService } from './modules/users/email-change.service';
 import { UsersService } from './modules/users/users.service';
 import { createRedis } from './redis/redis';
 import { createStorageDriver } from './storage/create-storage';
@@ -69,7 +69,7 @@ export interface Container {
   mailTransport: MailTransport;
   accountEmails: AccountEmailsService;
   passwordReset: PasswordResetService;
-  emailVerification: EmailVerificationService;
+  emailChange: EmailChangeService;
   authCleanup: AuthCleanupService;
   activities: ActivityService;
   tasks: TasksService;
@@ -126,15 +126,18 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     frontendUrl: env.FRONTEND_URL,
     resetTtlMinutes: env.PASSWORD_RESET_TTL_MINUTES,
   });
-  const emailVerification = new EmailVerificationService(
-    prisma,
-    jobs,
-    accountEmails,
-    clock,
-    logger,
-    { ttlHours: env.EMAIL_VERIFICATION_TTL_HOURS, frontendUrl: env.FRONTEND_URL },
-  );
-  const users = new UsersService(prisma, sessions, jobs, breachChecker, clock, emailVerification);
+  const users = new UsersService(prisma, sessions, jobs, breachChecker, clock);
+  // Emailed 6-digit codes share these limits (sign-up and email change).
+  const otpSettings = {
+    otpTtlMinutes: env.OTP_TTL_MINUTES,
+    maxAttempts: 5,
+    resendCooldownSeconds: 60,
+    maxSends: 5,
+  };
+  const emailChange = new EmailChangeService(prisma, redis, jobs, accountEmails, clock, {
+    ...otpSettings,
+    otpSecret: `${env.JWT_ACCESS_SECRET}:email-change-otp`,
+  });
   const auth = new AuthService(prisma, sessions, new LoginThrottle(limiters.loginFailures));
   const registration = new RegistrationService(
     prisma,
@@ -146,12 +149,9 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     clock,
     logger,
     {
-      otpTtlMinutes: env.SIGNUP_OTP_TTL_MINUTES,
+      ...otpSettings,
       // A purpose-specific key derived from the server secret.
       otpSecret: `${env.JWT_ACCESS_SECRET}:signup-otp`,
-      maxAttempts: 5,
-      resendCooldownSeconds: 60,
-      maxSends: 5,
     },
   );
   const passwordReset = new PasswordResetService(
@@ -203,7 +203,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     passwordReset,
     accountEmails,
     authCleanup,
-    emailVerification,
+    emailChange,
     registration,
     storage,
     images,
@@ -229,7 +229,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     mailTransport,
     accountEmails,
     passwordReset,
-    emailVerification,
+    emailChange,
     registration,
     authCleanup,
     activities,

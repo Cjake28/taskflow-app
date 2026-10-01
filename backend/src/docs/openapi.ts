@@ -1,4 +1,5 @@
 import {
+  changeEmailSchema,
   changePasswordSchema,
   createTaskSchema,
   forgotPasswordSchema,
@@ -9,7 +10,7 @@ import {
   resetPasswordSchema,
   updateProfileSchema,
   updateTaskSchema,
-  verifyEmailSchema,
+  verifyEmailChangeSchema,
   verifyRegistrationSchema,
   verifyResetTokenSchema,
 } from '@taskflow/shared';
@@ -113,6 +114,14 @@ const schemas: Record<string, Json> = {
     type: 'object',
     properties: {
       registrationId: { type: 'string', format: 'uuid' },
+      email: { type: 'string', format: 'email' },
+      expiresAt: DATE_TIME,
+      resendAvailableAt: DATE_TIME,
+    },
+  },
+  PendingEmailChange: {
+    type: 'object',
+    properties: {
       email: { type: 'string', format: 'email' },
       expiresAt: DATE_TIME,
       resendAvailableAt: DATE_TIME,
@@ -389,22 +398,6 @@ const paths: Record<string, Json> = {
       responses: { 204: noContent, ...errors(400, 429) },
     },
   },
-  '/auth/verify-email': {
-    post: {
-      tags: ['Auth'],
-      summary: 'Confirm the email address with the emailed token (single use, 24 h)',
-      security: [],
-      requestBody: body(verifyEmailSchema),
-      responses: { 204: noContent, ...errors(400, 429) },
-    },
-  },
-  '/auth/verify-email/resend': {
-    post: {
-      tags: ['Auth'],
-      summary: 'Email a new confirmation link (no-op when already confirmed)',
-      responses: { 204: noContent, ...errors(401, 429) },
-    },
-  },
   '/auth/oauth/providers': {
     get: {
       tags: ['OAuth'],
@@ -440,9 +433,42 @@ const paths: Record<string, Json> = {
     get: { tags: ['Account'], summary: 'Current user', responses: { 200: ok(ref('User')), ...errors(401) } },
     patch: {
       tags: ['Account'],
-      summary: 'Update profile (current password required to change the email)',
+      summary: 'Update names and username (the email has its own confirmed flow)',
       requestBody: body(updateProfileSchema),
       responses: { 200: ok(ref('User')), ...errors(400, 401, 409) },
+    },
+  },
+  '/users/me/email': {
+    get: {
+      tags: ['Account'],
+      summary: 'The email change waiting for its code, or null',
+      responses: { 200: ok({ anyOf: [ref('PendingEmailChange'), { type: 'null' }] }), ...errors(401) },
+    },
+    post: {
+      tags: ['Account'],
+      summary: 'Start an email change: emails a 6-digit code to the NEW address (nothing changes yet)',
+      requestBody: body(changeEmailSchema),
+      responses: { 202: ok(ref('PendingEmailChange'), 'Code sent'), ...errors(400, 401, 409, 429) },
+    },
+    delete: {
+      tags: ['Account'],
+      summary: 'Cancel a pending email change',
+      responses: { 204: noContent, ...errors(401) },
+    },
+  },
+  '/users/me/email/verify': {
+    post: {
+      tags: ['Account'],
+      summary: 'Confirm the code: switches the email (verified) and notifies the old address',
+      requestBody: body(verifyEmailChangeSchema),
+      responses: { 200: ok(ref('User')), ...errors(400, 401, 409, 429) },
+    },
+  },
+  '/users/me/email/resend': {
+    post: {
+      tags: ['Account'],
+      summary: 'Send a new code (60-second cooldown)',
+      responses: { 200: ok(ref('PendingEmailChange')), ...errors(400, 401, 429) },
     },
   },
   '/users/me/password': {

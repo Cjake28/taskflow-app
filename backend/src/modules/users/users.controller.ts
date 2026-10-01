@@ -1,14 +1,21 @@
-import type { ChangePasswordData, UpdateProfileData } from '@taskflow/shared';
+import type {
+  ChangeEmailData,
+  ChangePasswordData,
+  UpdateProfileData,
+  VerifyEmailChangeData,
+} from '@taskflow/shared';
 import type { Request, Response } from 'express';
-import { noContent, ok } from '../../common/http/respond';
+import { accepted, noContent, ok } from '../../common/http/respond';
 import { requireUser } from '../../common/middleware/authenticate';
 import { clearAuthCookies } from '../../common/security/cookies';
 import type { Env } from '../../config/env';
+import type { EmailChangeService } from './email-change.service';
 import type { UsersService } from './users.service';
 
 export class UsersController {
   constructor(
     private readonly users: UsersService,
+    private readonly emailChange: EmailChangeService,
     private readonly env: Env,
   ) {}
 
@@ -19,6 +26,30 @@ export class UsersController {
   updateMe = async (req: Request, res: Response) => {
     const user = requireUser(req);
     ok(res, await this.users.updateProfile(user.id, req.valid.body as UpdateProfileData));
+  };
+
+  /** Sends a code to the new address; the email changes only after `verifyEmailChange`. */
+  startEmailChange = async (req: Request, res: Response) => {
+    const userId = requireUser(req).id;
+    accepted(res, await this.emailChange.start(userId, req.valid.body as ChangeEmailData));
+  };
+
+  verifyEmailChange = async (req: Request, res: Response) => {
+    const { code } = req.valid.body as VerifyEmailChangeData;
+    ok(res, await this.emailChange.verify(requireUser(req).id, code));
+  };
+
+  resendEmailChange = async (req: Request, res: Response) => {
+    ok(res, await this.emailChange.resend(requireUser(req).id));
+  };
+
+  pendingEmailChange = async (req: Request, res: Response) => {
+    ok(res, await this.emailChange.pending(requireUser(req).id));
+  };
+
+  cancelEmailChange = async (req: Request, res: Response) => {
+    await this.emailChange.cancel(requireUser(req).id);
+    noContent(res);
   };
 
   changePassword = async (req: Request, res: Response) => {

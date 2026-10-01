@@ -6,8 +6,9 @@ import { UsersController } from './users.controller';
 import { createUsersRouter } from './users.routes';
 
 export function usersModule(c: Container): Router {
-  return createUsersRouter(new UsersController(c.users, c.env), {
+  return createUsersRouter(new UsersController(c.users, c.emailChange, c.env), {
     authenticate: authenticate(c.accessTokens, c.sessions),
     apiLimit: rateLimit(c.limiters.api, byUser),
+    otpLimit: rateLimit(c.limiters.emailChangeUser, byUser),
   });
 }
