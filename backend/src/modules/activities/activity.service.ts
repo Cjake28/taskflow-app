@@ -1,4 +1,4 @@
-import type { ActivityDto } from '@taskflow/shared';
+import type { ActivityDto, ListActivitiesQuery, PaginationMeta } from '@taskflow/shared';
 import type { Db, Tx } from '../../database/prisma';
 import { ActivityAction, Prisma } from '../../generated/prisma/client';
 
@@ -26,13 +26,39 @@ export class ActivityService {
     });
   }
 
-  async listRecent(userId: string, limit: number): Promise<ActivityDto[]> {
-    const rows = await this.prisma.taskActivity.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
-    return rows.map(toActivityResponse);
+  /** The user's activity history, newest first, with type, date and title filters. */
+  async list(
+    userId: string,
+    query: ListActivitiesQuery,
+  ): Promise<{ items: ActivityDto[]; meta: PaginationMeta }> {
+    const where: Prisma.TaskActivityWhereInput = { userId };
+    if (query.action?.length) where.action = { in: query.action };
+    if (query.from || query.to) {
+      where.createdAt = {
+        ...(query.from ? { gte: new Date(query.from) } : {}),
+        ...(query.to ? { lte: new Date(query.to) } : {}),
+      };
+    }
+    if (query.search) where.taskTitle = { contains: query.search, mode: 'insensitive' };
+
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.taskActivity.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (query.page - 1) * query.pageSize,
+        take: query.pageSize,
+      }),
+      this.prisma.taskActivity.count({ where }),
+    ]);
+    return {
+      items: rows.map(toActivityResponse),
+      meta: {
+        page: query.page,
+        pageSize: query.pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / query.pageSize)),
+      },
+    };
   }
 
   async listForTask(userId: string, taskId: string): Promise<ActivityDto[]> {

@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { TASK_LIMITS, TASK_PRIORITIES, TASK_SORT_FIELDS, TASK_STATUSES } from '../constants/task';
+import {
+  ACTIVITY_ACTIONS,
+  TASK_LIMITS,
+  TASK_PRIORITIES,
+  TASK_SORT_FIELDS,
+  TASK_STATUSES,
+} from '../constants/task';
 
 const titleSchema = z
   .string({ error: 'Title is required' })
@@ -101,8 +107,21 @@ export const listTasksQuerySchema = z.object({
 
 export type ListTasksQuery = z.output<typeof listTasksQuerySchema>;
 
-export const activityQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(50).default(10),
-});
+/** `GET /activities`: the activity history with filters, newest first. */
+export const listActivitiesQuerySchema = z
+  .object({
+    /** CSV of activity actions, e.g. `CREATED,STATUS_CHANGED`. */
+    action: csvOf(ACTIVITY_ACTIONS, 'activity type').optional(),
+    from: z.iso.datetime({ offset: true, error: 'Invalid from date' }).optional(),
+    to: z.iso.datetime({ offset: true, error: 'Invalid to date' }).optional(),
+    /** Task title contains (case-insensitive). */
+    search: z.string().trim().max(TASK_LIMITS.title).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(TASK_LIMITS.pageSizeMax).default(20),
+  })
+  .refine((query) => !query.from || !query.to || Date.parse(query.from) <= Date.parse(query.to), {
+    path: ['to'],
+    message: 'The end date must be after the start date',
+  });
 
-export type ActivityQuery = z.output<typeof activityQuerySchema>;
+export type ListActivitiesQuery = z.output<typeof listActivitiesQuerySchema>;
