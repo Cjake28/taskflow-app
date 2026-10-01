@@ -8,6 +8,10 @@ The shortest way to get TaskFlow running on your computer. Copy and paste the co
 
 Everything is preconfigured for local use: database user and password, Redis password, email inbox, ports and demo accounts. You don't have to edit any settings (except one line in Option B, explained there).
 
+> **Email works out of the box.** TaskFlow sends real emails: sign-up codes, password reset links, email-change codes, reminders. **Mailpit**, a local email inbox at http://localhost:8025, catches all of them, so the whole system can be tested without any Gmail or SMTP account. With Docker it starts automatically; without Docker, install it in Option B, Step 3.
+>
+> **Google / GitHub sign-in is optional.** Everything works and can be tested without it.
+
 ---
 
 ## 1. Install these first
@@ -58,7 +62,7 @@ When you see the web app's address in the terminal, open **http://localhost:5173
 
 ## 3. Option B: without Docker
 
-You install PostgreSQL and Redis on your computer, and the email inbox (Mailpit) too if you want to read the app's emails.
+You install PostgreSQL, Redis and the email inbox (Mailpit) on your computer.
 
 ### Step 1: PostgreSQL (the database)
 
@@ -95,9 +99,9 @@ Install Redis and start it on the default port `6379`:
 - **macOS:** `brew install redis && brew services start redis`
 - **Ubuntu/Debian:** `sudo apt install -y redis-server && sudo systemctl start redis-server`
 
-### Step 3: Mailpit (optional: lets you read the app's emails)
+### Step 3: Mailpit (the email inbox)
 
-You need it to **register a new account** (the sign-up code is sent by email), to try **forgot password** and to see **reminder emails**. The demo accounts work without it.
+Needed to test the full system. Mailpit is where you read the **sign-up code** (registering needs it), the **password reset link**, the **email-change code** and **reminder emails**. Without it, only logging in with the demo accounts works.
 
 - **Windows:** download `mailpit-windows-amd64.zip` from https://github.com/axllent/mailpit/releases/latest, unzip it and double-click `mailpit.exe`. Keep that window open.
 - **macOS:** `brew install mailpit && brew services start mailpit`
@@ -189,6 +193,7 @@ You can also register your own account. The 6-digit code arrives in Mailpit (htt
 | `ERR AUTH` or `NOAUTH` (Redis)                         | The `REDIS_URL` password doesn't match your Redis. Without Docker, use `redis://127.0.0.1:6379/0` (Step 4).                                 |
 | `Node.js 24 or newer is required`                      | Install Node.js 24+ from https://nodejs.org and open a new terminal.                                                                        |
 | The page opens but you can't log in                    | Make sure the terminal running `npm run dev` shows `API listening`.                                                                         |
+| No sign-up code / reset email arrives                  | Open http://localhost:8025. Without Docker, make sure Mailpit is running (Option B, Step 3). Emails arrive within a few seconds.            |
 
 **Reset the demo accounts** (both options): `npm run db:seed`
 
