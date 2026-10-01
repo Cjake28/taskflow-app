@@ -27,9 +27,7 @@ export interface BoardCardProps {
 
 function DoneLabel({ completedAt }: { completedAt: string }) {
   const relative = formatRelativeShort(completedAt);
-  const text = /^(Just now|Yesterday)$/.test(relative)
-    ? relative.toLowerCase()
-    : relative;
+  const text = /^(Just now|Yesterday)$/.test(relative) ? relative.toLowerCase() : relative;
   return (
     <span
       title={formatDateTime(completedAt)}
@@ -55,8 +53,7 @@ export function BoardCard({
     <article
       className={cn(
         'relative flex flex-col gap-[9px] rounded-[18px] bg-card p-3.5 shadow-card',
-        overlay &&
-          'rotate-[2.5deg] cursor-grabbing shadow-pop outline-2 outline-primary',
+        overlay && 'rotate-[2.5deg] cursor-grabbing shadow-pop outline-2 outline-primary',
         className,
       )}
     >
@@ -135,7 +132,10 @@ export function DropPlaceholder({
 }) {
   if (!crossColumn) {
     return (
-      <div aria-hidden="true" className="rounded-[18px] outline-2 -outline-offset-2 outline-dashed outline-[color-mix(in_oklab,var(--muted-foreground)_40%,transparent)]">
+      <div
+        aria-hidden="true"
+        className="rounded-[18px] outline-2 -outline-offset-2 outline-dashed outline-[color-mix(in_oklab,var(--muted-foreground)_40%,transparent)]"
+      >
         <BoardCard task={task} className="opacity-35 shadow-none" />
       </div>
     );
@@ -156,7 +156,10 @@ export function DropPlaceholder({
 
 export function BoardCardSkeleton({ index = 0 }: { index?: number }) {
   return (
-    <div aria-hidden="true" className="flex flex-col gap-2.5 rounded-[18px] bg-card p-3.5 shadow-card">
+    <div
+      aria-hidden="true"
+      className="flex flex-col gap-2.5 rounded-[18px] bg-card p-3.5 shadow-card"
+    >
       <Skeleton className="h-3.5 rounded-full" style={{ width: `${60 + ((index * 17) % 30)}%` }} />
       <Skeleton className="h-2.5 w-4/5 rounded-full" />
       <div className="mt-1 flex justify-between">

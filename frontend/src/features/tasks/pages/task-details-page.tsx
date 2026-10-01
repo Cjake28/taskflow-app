@@ -96,7 +96,10 @@ function DetailsSkeleton() {
         <div className="rounded-card bg-card p-[22px] shadow-card">
           <Skeleton className="mb-4 h-4 w-20 rounded-full" />
           {[0, 1, 2, 3, 4].map((index) => (
-            <div key={index} className="flex justify-between border-t border-border py-3.5 first:border-t-0">
+            <div
+              key={index}
+              className="flex justify-between border-t border-border py-3.5 first:border-t-0"
+            >
               <Skeleton className="h-3 w-20 rounded-full" />
               <Skeleton className="h-3 w-28 rounded-full" />
             </div>
@@ -269,11 +272,7 @@ function TaskDetails({ task, onDeleted }: { task: TaskDetailsDto; onDeleted: () 
         </Card>
       </div>
 
-      <TaskFormDialog
-        open={editing}
-        task={editing ? task : null}
-        onOpenChange={setEditing}
-      />
+      <TaskFormDialog open={editing} task={editing ? task : null} onOpenChange={setEditing} />
       <DeleteTaskDialog
         task={deleting ? task : null}
         onOpenChange={setDeleting}

@@ -104,14 +104,12 @@ const PRIORITY_TINT: Record<TaskPriority, string> = {
   HIGH: 'var(--danger)',
 };
 
-const PRIORITY_OPTIONS: readonly PickerOption<TaskPriority>[] = TASK_PRIORITIES.map(
-  (priority) => ({
-    value: priority,
-    label: PRIORITY_META[priority].label,
-    tint: PRIORITY_TINT[priority],
-    icon: <PriorityBars priority={priority} className="text-(--tint)" />,
-  }),
-);
+const PRIORITY_OPTIONS: readonly PickerOption<TaskPriority>[] = TASK_PRIORITIES.map((priority) => ({
+  value: priority,
+  label: PRIORITY_META[priority].label,
+  tint: PRIORITY_TINT[priority],
+  icon: <PriorityBars priority={priority} className="text-(--tint)" />,
+}));
 
 type PickerProps<T extends string> = Omit<OptionPickerProps<T>, 'options'>;
 

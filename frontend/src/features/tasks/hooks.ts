@@ -28,11 +28,7 @@ import {
   withStatus,
   type TaskCacheSnapshot,
 } from './cache';
-import {
-  toBoardColumnQuery,
-  type TaskListQuery,
-  type TaskSearchState,
-} from './url-state';
+import { toBoardColumnQuery, type TaskListQuery, type TaskSearchState } from './url-state';
 
 /* ------------------------------------------------------------------ queries */
 

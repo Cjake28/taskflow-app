@@ -52,9 +52,7 @@ function QueueRow({
   const busy = item.status === 'uploading' || item.status === 'processing';
   const showBar = busy || item.status === 'queued' || item.status === 'done';
   const percent =
-    item.status === 'done' || item.status === 'processing'
-      ? 100
-      : Math.round(item.progress * 100);
+    item.status === 'done' || item.status === 'processing' ? 100 : Math.round(item.progress * 100);
 
   return (
     <li
@@ -166,7 +164,8 @@ export function UploadQueue({
 }: UploadQueueProps) {
   if (items.length === 0) return null;
   const active = items.filter(
-    (item) => item.status === 'queued' || item.status === 'uploading' || item.status === 'processing',
+    (item) =>
+      item.status === 'queued' || item.status === 'uploading' || item.status === 'processing',
   ).length;
 
   return (

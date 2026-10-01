@@ -27,8 +27,8 @@ export function DeleteTaskDialog({ task, onOpenChange, onDeleted }: DeleteTaskDi
       title="Delete this task?"
       description={
         <>
-          “<b className="font-bold text-foreground">{shown?.title}</b>” will be permanently deleted. This
-          can&apos;t be undone.
+          “<b className="font-bold text-foreground">{shown?.title}</b>” will be permanently deleted.
+          This can&apos;t be undone.
         </>
       }
       confirmLabel="Delete task"

@@ -50,7 +50,12 @@ export interface UploadQueueOptions {
   onUploaded?: (images: ImageDto[], item: UploadItem, taskId: string) => void;
 }
 
-const IN_FLIGHT: ReadonlySet<UploadStatus> = new Set(['ready', 'queued', 'uploading', 'processing']);
+const IN_FLIGHT: ReadonlySet<UploadStatus> = new Set([
+  'ready',
+  'queued',
+  'uploading',
+  'processing',
+]);
 
 function defaultCreatePreview(file: File): string | null {
   if (!file.type.startsWith('image/') || typeof URL.createObjectURL !== 'function') return null;
@@ -116,28 +121,24 @@ export class UploadQueueStore {
   add(files: readonly File[], slotsLeft: number, taskId?: string | null): UploadItem[] {
     const { accepted, rejected } = checkImageFiles(files, slotsLeft - this.inFlightCount);
     const added: UploadItem[] = [
-      ...accepted.map(
-        (file): UploadItem => ({
-          id: nextId(),
-          file,
-          previewUrl: this.options.createPreview(file),
-          status: taskId ? 'queued' : 'ready',
-          progress: 0,
-          error: null,
-          retryable: true,
-        }),
-      ),
-      ...rejected.map(
-        ({ file, message }): UploadItem => ({
-          id: nextId(),
-          file,
-          previewUrl: null,
-          status: 'error',
-          progress: 0,
-          error: message,
-          retryable: false,
-        }),
-      ),
+      ...accepted.map((file): UploadItem => ({
+        id: nextId(),
+        file,
+        previewUrl: this.options.createPreview(file),
+        status: taskId ? 'queued' : 'ready',
+        progress: 0,
+        error: null,
+        retryable: true,
+      })),
+      ...rejected.map(({ file, message }): UploadItem => ({
+        id: nextId(),
+        file,
+        previewUrl: null,
+        status: 'error',
+        progress: 0,
+        error: message,
+        retryable: false,
+      })),
     ];
     if (added.length === 0) return added;
     this.commit([...this.items, ...added]);

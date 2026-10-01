@@ -19,14 +19,17 @@ export function NoMatchDescription({ state }: { state: TaskSearchState }) {
   if (state.status.length > 0 && state.view === 'list') {
     parts.push(
       <span key="status">
-        status <b className="text-foreground">{joinOr(state.status.map((s) => STATUS_META[s].label))}</b>
+        status{' '}
+        <b className="text-foreground">{joinOr(state.status.map((s) => STATUS_META[s].label))}</b>
       </span>,
     );
   }
   if (state.priority.length > 0) {
     parts.push(
       <span key="priority">
-        <b className="text-foreground">{joinOr(state.priority.map((p) => PRIORITY_META[p].label))}</b>{' '}
+        <b className="text-foreground">
+          {joinOr(state.priority.map((p) => PRIORITY_META[p].label))}
+        </b>{' '}
         priority
       </span>,
     );
@@ -59,13 +62,7 @@ export function NoMatchDescription({ state }: { state: TaskSearchState }) {
   );
 }
 
-export function NoMatchState({
-  state,
-  onClear,
-}: {
-  state: TaskSearchState;
-  onClear: () => void;
-}) {
+export function NoMatchState({ state, onClear }: { state: TaskSearchState; onClear: () => void }) {
   return (
     <EmptyState
       icon={SearchX}

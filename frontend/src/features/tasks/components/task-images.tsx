@@ -91,7 +91,10 @@ export function TaskImages({ task }: { task: TaskDetailsDto }) {
   };
 
   return (
-    <section aria-labelledby="task-images-heading" className="rounded-card bg-card p-[22px] shadow-card">
+    <section
+      aria-labelledby="task-images-heading"
+      className="rounded-card bg-card p-[22px] shadow-card"
+    >
       <div className="mb-3.5 flex items-center gap-2.5">
         <h2 id="task-images-heading" className="text-base font-extrabold">
           Images

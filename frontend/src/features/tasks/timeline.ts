@@ -6,7 +6,9 @@ const IMAGE_BURST_MS = 5 * 60 * 1000;
 function imageCount(activity: ActivityDto): number {
   const images = activity.changes?.images;
   const count =
-    typeof images === 'object' && images !== null ? Number((images as { count?: unknown }).count) : 1;
+    typeof images === 'object' && images !== null
+      ? Number((images as { count?: unknown }).count)
+      : 1;
   return Number.isFinite(count) && count > 0 ? count : 1;
 }
 

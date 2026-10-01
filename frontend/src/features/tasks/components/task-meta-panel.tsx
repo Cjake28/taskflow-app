@@ -59,14 +59,20 @@ export interface TaskMetaPanelProps {
 export function TaskMetaPanel({ task, onStatusChange, onPriorityChange }: TaskMetaPanelProps) {
   const due = formatDueDetail(task);
   return (
-    <section aria-labelledby="task-details-heading" className="rounded-card bg-card p-[22px] shadow-card">
+    <section
+      aria-labelledby="task-details-heading"
+      className="rounded-card bg-card p-[22px] shadow-card"
+    >
       <h2 id="task-details-heading" className="mb-3.5 text-base font-extrabold">
         Details
       </h2>
       <dl className="flex flex-col">
         <Row icon={<Timer aria-hidden="true" />} label="Status">
           <DropdownMenu>
-            <DropdownMenuTrigger className={menuTrigger} aria-label={`Status: ${STATUS_META[task.status].label}. Change status`}>
+            <DropdownMenuTrigger
+              className={menuTrigger}
+              aria-label={`Status: ${STATUS_META[task.status].label}. Change status`}
+            >
               <StatusBadge status={task.status} />
               <ChevronDown aria-hidden="true" className="size-[15px] text-muted-foreground" />
             </DropdownMenuTrigger>
@@ -94,7 +100,10 @@ export function TaskMetaPanel({ task, onStatusChange, onPriorityChange }: TaskMe
         </Row>
         <Row icon={<SignalHigh aria-hidden="true" />} label="Priority">
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(menuTrigger, 'pl-1.5')} aria-label={`Priority: ${PRIORITY_META[task.priority].label}. Change priority`}>
+            <DropdownMenuTrigger
+              className={cn(menuTrigger, 'pl-1.5')}
+              aria-label={`Priority: ${PRIORITY_META[task.priority].label}. Change priority`}
+            >
               <PriorityIndicator priority={task.priority} />
               <ChevronDown aria-hidden="true" className="size-[15px] text-muted-foreground" />
             </DropdownMenuTrigger>

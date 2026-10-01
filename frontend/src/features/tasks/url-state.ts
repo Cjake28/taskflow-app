@@ -64,8 +64,7 @@ export interface TaskSearchState {
 
 /** A change to apply, or a function of the newest state (for toggles). */
 export type TaskSearchPatch =
-  | Partial<TaskSearchState>
-  | ((current: TaskSearchState) => Partial<TaskSearchState>);
+  Partial<TaskSearchState> | ((current: TaskSearchState) => Partial<TaskSearchState>);
 
 /** Adds or removes one value; picking every option means "no filter". */
 export function toggleFilterValue<T extends string>(
@@ -113,7 +112,8 @@ export function parseTaskSearch(params: URLSearchParams): TaskSearchState {
     sortBy: LIST_SORT_FIELDS.includes(sortBy as ListSortField)
       ? (sortBy as ListSortField)
       : DEFAULT_TASK_SEARCH.sortBy,
-    sortOrder: sortOrder === 'asc' || sortOrder === 'desc' ? sortOrder : DEFAULT_TASK_SEARCH.sortOrder,
+    sortOrder:
+      sortOrder === 'asc' || sortOrder === 'desc' ? sortOrder : DEFAULT_TASK_SEARCH.sortOrder,
     page: Number.isInteger(page) && page > 1 ? page : 1,
   };
 }

@@ -334,7 +334,10 @@ function SortMenu({
   const OrderIcon = sortOrder === 'asc' ? ArrowUpNarrowWide : ArrowDownWideNarrow;
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className={chip} aria-label={`Sort: ${SORT_LABELS[sortBy]}, ${ORDER_LABELS[sortBy][sortOrder]}`}>
+      <DropdownMenuTrigger
+        className={chip}
+        aria-label={`Sort: ${SORT_LABELS[sortBy]}, ${ORDER_LABELS[sortBy][sortOrder]}`}
+      >
         <OrderIcon aria-hidden="true" className="text-muted-foreground" />
         Sort: {SORT_LABELS[sortBy]} {sortOrder === 'asc' ? '↑' : '↓'}
       </DropdownMenuTrigger>
@@ -359,12 +362,14 @@ function SortMenu({
           value={sortOrder}
           onValueChange={(value) => onChange(sortBy, value as SortOrder)}
         >
-          {(DEFAULT_ORDER[sortBy] === 'asc' ? (['asc', 'desc'] as const) : (['desc', 'asc'] as const))
-            .map((order) => (
-              <DropdownMenuRadioItem key={order} value={order}>
-                {ORDER_LABELS[sortBy][order]}
-              </DropdownMenuRadioItem>
-            ))}
+          {(DEFAULT_ORDER[sortBy] === 'asc'
+            ? (['asc', 'desc'] as const)
+            : (['desc', 'asc'] as const)
+          ).map((order) => (
+            <DropdownMenuRadioItem key={order} value={order}>
+              {ORDER_LABELS[sortBy][order]}
+            </DropdownMenuRadioItem>
+          ))}
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>

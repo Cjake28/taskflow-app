@@ -311,7 +311,8 @@ export function KanbanBoard({ columns, onMove, onAdd, listHref }: KanbanBoardPro
       const list = final[container];
       const oldIndex = list.findIndex((task) => task.id === activeId);
       const newIndex = list.findIndex((task) => task.id === overId);
-      if (oldIndex !== newIndex) final = { ...final, [container]: arrayMove(list, oldIndex, newIndex) };
+      if (oldIndex !== newIndex)
+        final = { ...final, [container]: arrayMove(list, oldIndex, newIndex) };
     }
     const move = resolveMove(drag.origin, final, activeId);
     if (move) onMove(move, final);

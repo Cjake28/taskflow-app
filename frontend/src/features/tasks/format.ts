@@ -106,8 +106,11 @@ export function pageWindow(page: number, totalPages: number): Array<number | 'ga
   if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
   const pages = new Set([1, totalPages, page - 1, page, page + 1]);
   if (page <= 3) [2, 3, 4].forEach((value) => pages.add(value));
-  if (page >= totalPages - 2) [totalPages - 3, totalPages - 2, totalPages - 1].forEach((v) => pages.add(v));
-  const sorted = [...pages].filter((value) => value >= 1 && value <= totalPages).sort((a, b) => a - b);
+  if (page >= totalPages - 2)
+    [totalPages - 3, totalPages - 2, totalPages - 1].forEach((v) => pages.add(v));
+  const sorted = [...pages]
+    .filter((value) => value >= 1 && value <= totalPages)
+    .sort((a, b) => a - b);
   const result: Array<number | 'gap'> = [];
   for (const value of sorted) {
     const previous = result.at(-1);

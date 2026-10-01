@@ -18,7 +18,8 @@ export function useUploadQueue(options: UploadQueueOptions = {}) {
   useEffect(() => () => store.dispose(), [store]);
 
   const inFlight = items.filter(
-    (item) => item.status === 'queued' || item.status === 'uploading' || item.status === 'processing',
+    (item) =>
+      item.status === 'queued' || item.status === 'uploading' || item.status === 'processing',
   ).length;
   const readyCount = items.filter((item) => item.status === 'ready').length;
 

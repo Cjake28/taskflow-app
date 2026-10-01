@@ -94,10 +94,7 @@ const minuteOf = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
 /** Only the fields that changed; `null` clears the description or due date. Null = no changes. */
 export function toUpdateInput(
   values: TaskFormValues,
-  task: Pick<
-    TaskDto,
-    'title' | 'description' | 'status' | 'priority' | 'dueDate' | 'hasDueTime'
-  >,
+  task: Pick<TaskDto, 'title' | 'description' | 'status' | 'priority' | 'dueDate' | 'hasDueTime'>,
 ): UpdateTaskInput | null {
   const input: UpdateTaskInput = {};
 
@@ -113,7 +110,9 @@ export function toUpdateInput(
   const due = dueOf(values);
   const dateChanged =
     (due.dueDate === null) !== (task.dueDate === null) ||
-    (due.dueDate !== null && task.dueDate !== null && minuteOf(due.dueDate) !== minuteOf(task.dueDate));
+    (due.dueDate !== null &&
+      task.dueDate !== null &&
+      minuteOf(due.dueDate) !== minuteOf(task.dueDate));
   const timeModeChanged = due.dueDate !== null && due.hasDueTime !== task.hasDueTime;
   if (dateChanged || timeModeChanged) {
     input.dueDate = due.dueDate;

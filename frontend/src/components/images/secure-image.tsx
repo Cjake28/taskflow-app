@@ -7,8 +7,10 @@ import { cn } from '@/lib/utils';
 
 import { withRetryParam } from './image-utils';
 
-export interface SecureImageProps
-  extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt' | 'onLoad' | 'onError'> {
+export interface SecureImageProps extends Omit<
+  ImgHTMLAttributes<HTMLImageElement>,
+  'src' | 'alt' | 'onLoad' | 'onError'
+> {
   /** Same-origin API URL, e.g. `/api/v1/images/<id>?variant=thumb` (sent with the auth cookie). */
   src: string;
   alt: string;

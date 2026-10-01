@@ -107,7 +107,10 @@ export function Lightbox({ images, index, onIndexChange, onClose, onRemove }: Li
                 <>
                   <button
                     type="button"
-                    className={cn(roundButton, 'absolute top-1/2 left-3 -translate-y-1/2 sm:left-6')}
+                    className={cn(
+                      roundButton,
+                      'absolute top-1/2 left-3 -translate-y-1/2 sm:left-6',
+                    )}
                     aria-label="Previous image"
                     onClick={() => go(-1)}
                   >

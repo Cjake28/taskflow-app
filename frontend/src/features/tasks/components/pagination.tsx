@@ -59,7 +59,11 @@ export function Pagination({
           <span className="hidden items-center gap-1.5 sm:flex">
             {pageWindow(page, totalPages).map((item, index) =>
               item === 'gap' ? (
-                <span key={`gap-${index}`} aria-hidden="true" className="px-1 text-muted-foreground">
+                <span
+                  key={`gap-${index}`}
+                  aria-hidden="true"
+                  className="px-1 text-muted-foreground"
+                >
                   …
                 </span>
               ) : (

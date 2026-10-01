@@ -20,7 +20,13 @@ const row =
   'flex w-full cursor-pointer items-center gap-3 rounded-xl px-2.5 py-[13px] text-left text-[14.5px] font-semibold transition-colors hover:bg-fill focus-visible:bg-fill focus-visible:outline-none';
 
 /** Bottom sheet for the phone board (spec §14.9): "Move to…" instead of drag and drop. */
-export function MoveTaskSheet({ task, onOpenChange, onMove, onEdit, onDelete }: MoveTaskSheetProps) {
+export function MoveTaskSheet({
+  task,
+  onOpenChange,
+  onMove,
+  onEdit,
+  onDelete,
+}: MoveTaskSheetProps) {
   // Keep the content while the sheet slides out.
   const [shown, setShown] = useState(task);
   if (task && task !== shown) setShown(task);
@@ -34,9 +40,7 @@ export function MoveTaskSheet({ task, onOpenChange, onMove, onEdit, onDelete }: 
     <Dialog open={task !== null} onOpenChange={onOpenChange}>
       <DialogPortal>
         <DialogOverlay />
-        <DialogPrimitive.Content
-          className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-[28px] bg-card px-[18px] pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-card-foreground shadow-pop outline-none data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=closed]:slide-out-to-bottom data-[state=open]:animate-in data-[state=open]:duration-300 data-[state=open]:slide-in-from-bottom"
-        >
+        <DialogPrimitive.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-lg rounded-t-[28px] bg-card px-[18px] pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-card-foreground shadow-pop outline-none data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=closed]:slide-out-to-bottom data-[state=open]:animate-in data-[state=open]:duration-300 data-[state=open]:slide-in-from-bottom">
           <div aria-hidden="true" className="mx-auto mb-3.5 h-[5px] w-11 rounded-full bg-border" />
           {shown ? (
             <>
@@ -65,7 +69,10 @@ export function MoveTaskSheet({ task, onOpenChange, onMove, onEdit, onDelete }: 
                       style={{ '--dot': STATUS_META[status].tint } as CSSProperties}
                       className={cn(row, current && 'bg-fill')}
                     >
-                      <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-(--dot)" />
+                      <span
+                        aria-hidden="true"
+                        className="size-2 shrink-0 rounded-full bg-(--dot)"
+                      />
                       {STATUS_META[status].label}
                       {current ? (
                         <>
@@ -84,7 +91,10 @@ export function MoveTaskSheet({ task, onOpenChange, onMove, onEdit, onDelete }: 
               </button>
               <button
                 type="button"
-                className={cn(row, 'text-danger hover:bg-[color-mix(in_oklab,var(--danger)_9%,var(--card))]')}
+                className={cn(
+                  row,
+                  'text-danger hover:bg-[color-mix(in_oklab,var(--danger)_9%,var(--card))]',
+                )}
                 onClick={() => choose(() => onDelete(shown))}
               >
                 <Trash2 aria-hidden="true" className="size-[18px]" />

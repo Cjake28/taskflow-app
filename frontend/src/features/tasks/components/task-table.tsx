@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react';
 import type { TaskDto } from '@taskflow/shared';
-import { ArrowDown, ArrowUp, ChevronsUpDown, Ellipsis, Paperclip, Pencil, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsUpDown,
+  Ellipsis,
+  Paperclip,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { Link } from 'react-router';
 
 import { PriorityIndicator } from '@/components/common/priority-indicator';
@@ -65,7 +73,9 @@ function SortHeader({
           aria-hidden="true"
           className={cn(
             'size-3.5 shrink-0 transition-opacity',
-            active ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-70 group-focus-visible/sort:opacity-70',
+            active
+              ? 'opacity-100'
+              : 'opacity-0 group-hover/sort:opacity-70 group-focus-visible/sort:opacity-70',
           )}
         />
       </button>
@@ -237,14 +247,17 @@ export function TaskTableSkeleton({ rows = 6 }: { rows?: number }) {
     <div className="overflow-hidden rounded-card bg-card shadow-card" aria-hidden="true">
       <div className={cn(th, 'h-[46px]')} />
       {Array.from({ length: rows }, (_, index) => (
-        <div
-          key={index}
-          className="flex items-center gap-4 border-t border-border px-4 py-[17px]"
-        >
+        <div key={index} className="flex items-center gap-4 border-t border-border px-4 py-[17px]">
           <Skeleton className="size-[22px] rounded-full" />
           <div className="min-w-0 flex-1">
-            <Skeleton className="mb-2 h-3 rounded-full" style={{ width: `${48 + ((index * 17) % 30)}%` }} />
-            <Skeleton className="h-2.5 rounded-full" style={{ width: `${62 + ((index * 11) % 25)}%` }} />
+            <Skeleton
+              className="mb-2 h-3 rounded-full"
+              style={{ width: `${48 + ((index * 17) % 30)}%` }}
+            />
+            <Skeleton
+              className="h-2.5 rounded-full"
+              style={{ width: `${62 + ((index * 11) % 25)}%` }}
+            />
           </div>
           <Skeleton className="h-[24px] w-[92px] rounded-full" />
           <Skeleton className="h-3 w-[70px] rounded-full" />
