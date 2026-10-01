@@ -20,6 +20,10 @@ It was built for a full-stack developer technical assessment. The required stack
     <td><img src="docs/screenshots/activity.webp" alt="Activity history with date and type filters" /></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/notifications.webp" alt="Notification bell with reminders, the daily summary and a new sign-in alert" /></td>
+    <td><img src="docs/screenshots/notification-settings.webp" alt="Notification settings: in-app and email per type, due-soon lead time, summary time and time zone" /></td>
+  </tr>
+  <tr>
     <td><img src="docs/screenshots/login.webp" alt="Login page" /></td>
     <td align="center">
       <img src="docs/screenshots/mobile-dashboard-dark.webp" alt="Mobile dashboard in dark mode" width="45%" />
