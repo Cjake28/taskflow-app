@@ -15,7 +15,7 @@ function FloatCard({ className, children }: { className?: string; children: Reac
   return (
     <div
       className={cn(
-        'surface-light absolute rounded-[18px] bg-card px-4 py-3.5 text-[13px] text-foreground',
+        'surface-light absolute rounded-item bg-card px-4 py-3.5 text-[13px] text-foreground',
         className,
       )}
     >

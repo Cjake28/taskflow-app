@@ -194,9 +194,11 @@
   --radius-xl: var(--radius);
   --radius-input: 14px;
   --radius-thumb: 16px;
-  --radius-tile: 20px;
-  --radius-card: 24px;
-  --radius-dialog: 26px;
+  /* Card roundness. Previous, rounder values: item 18 · tile 20 · card 24 · dialog 26. */
+  --radius-item: 12px; /* cards inside a list or column: board cards, task cards, rows */
+  --radius-tile: 14px;
+  --radius-card: 16px;
+  --radius-dialog: 18px;
 
   --animate-logo-pulse: logo-pulse 1.6s ease-in-out infinite;
   --animate-loadbar: loadbar 1.2s ease-in-out infinite;

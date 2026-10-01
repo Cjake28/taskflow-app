@@ -85,7 +85,7 @@ export function StatTiles({ stats }: { stats: DashboardStats }) {
                 to={statTileHref(tile.kind)}
                 style={{ '--tint': tile.tint } as CSSProperties}
                 className={cn(
-                  'group relative isolate flex h-full flex-col items-center gap-2 overflow-hidden rounded-[22px] px-1.5 pt-3.5 pb-3 text-center transition-colors duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:rounded-tile sm:p-4 sm:text-left xl:p-[18px]',
+                  'group relative isolate flex h-full flex-col items-center gap-2 overflow-hidden rounded-tile px-1.5 pt-3.5 pb-3 text-center transition-colors duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:p-4 sm:text-left xl:p-[18px]',
                   tile.neutral
                     ? 'bg-tint-faint hover:bg-tint-soft'
                     : 'bg-tint-soft hover:bg-tint-strong',
@@ -163,7 +163,7 @@ export function StatTilesSkeleton() {
         <div
           key={tile.kind}
           className={cn(
-            'flex flex-col items-center gap-3 rounded-[22px] bg-card px-1.5 pt-3.5 pb-3 shadow-card sm:items-start sm:rounded-tile sm:p-4 xl:p-[18px]',
+            'flex flex-col items-center gap-3 rounded-tile bg-card px-1.5 pt-3.5 pb-3 shadow-card sm:items-start sm:p-4 xl:p-[18px]',
             !tile.phone && 'hidden sm:flex',
           )}
         >

@@ -32,7 +32,7 @@ export function AuthLayout({
     <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[1.05fr_1fr]">
       <aside
         aria-hidden="true"
-        className="relative m-4 hidden flex-col overflow-hidden rounded-[28px] bg-primary px-10 py-9 text-white lg:sticky lg:top-4 lg:flex lg:h-[calc(100dvh-2rem)] lg:min-h-[620px]"
+        className="relative m-4 hidden flex-col overflow-hidden rounded-card bg-primary px-10 py-9 text-white lg:sticky lg:top-4 lg:flex lg:h-[calc(100dvh-2rem)] lg:min-h-[620px]"
       >
         <Logo onBrand className="relative z-10" />
 
