@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react';
-import { CircleCheck, FileWarning, Loader2, RotateCw, X } from 'lucide-react';
+import { useState, type CSSProperties } from 'react';
+import { CircleCheck, FileWarning, ImageIcon, Loader2, RotateCw, X } from 'lucide-react';
 
 import { formatFileSize } from '@/lib/upload';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ function statusText(item: UploadItem): string {
     case 'queued':
       return 'Waiting…';
     case 'uploading':
-      return `Uploading · ${Math.round(item.progress * 100)}%`;
+      return item.progress > 0 ? `Uploading · ${Math.round(item.progress * 100)}%` : 'Uploading…';
     case 'processing':
       return 'Processing…';
     case 'done':
@@ -50,6 +50,10 @@ function QueueRow({
   locked: boolean;
 }) {
   const busy = item.status === 'uploading' || item.status === 'processing';
+  // Some files have an image type but do not decode (the server will reject them too).
+  const [previewFailed, setPreviewFailed] = useState(false);
+  // No progress event yet (or none at all, e.g. tiny files): show an indeterminate bar.
+  const indeterminate = item.status === 'uploading' && item.progress === 0;
   const showBar = busy || item.status === 'queued' || item.status === 'done';
   const percent =
     item.status === 'done' || item.status === 'processing' ? 100 : Math.round(item.progress * 100);
@@ -64,13 +68,16 @@ function QueueRow({
       )}
     >
       <span className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-card">
-        {item.previewUrl ? (
+        {item.previewUrl && !previewFailed ? (
           <img
             src={item.previewUrl}
             alt=""
             className={cn('size-full object-cover', busy && 'opacity-70')}
             draggable={false}
+            onError={() => setPreviewFailed(true)}
           />
+        ) : item.previewUrl ? (
+          <ImageIcon aria-hidden="true" className="size-5 text-muted-foreground" />
         ) : (
           <FileWarning aria-hidden="true" className="size-5 text-danger" />
         )}
@@ -109,7 +116,7 @@ function QueueRow({
             aria-label={`Upload progress for ${item.file.name}`}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={percent}
+            aria-valuenow={indeterminate ? undefined : percent}
             className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--muted-foreground)_18%,transparent)]"
           >
             <span
@@ -119,8 +126,9 @@ function QueueRow({
                   ? 'bg-status-done'
                   : 'bg-[linear-gradient(90deg,var(--primary),var(--primary-2))]',
                 item.status === 'processing' && 'animate-pulse',
+                indeterminate && 'w-2/5 animate-loadbar',
               )}
-              style={{ width: `${percent}%` }}
+              style={indeterminate ? undefined : { width: `${percent}%` }}
             />
           </span>
         ) : null}
