@@ -4,25 +4,18 @@ export interface ProfileFormValues {
   firstName: string;
   lastName: string;
   username: string;
-  email: string;
-  currentPassword?: string;
 }
 
-type ProfileIdentity = Pick<UserDto, 'firstName' | 'lastName' | 'username' | 'email'>;
+type ProfileIdentity = Pick<UserDto, 'firstName' | 'lastName' | 'username'>;
 
-/** Same normalisation as the shared schemas: usernames and emails are trimmed and lower-cased. */
+/** Same normalisation as the shared schema: usernames are trimmed and lower-cased. */
 export function normalizeIdentifier(value: string): string {
   return value.trim().toLowerCase();
 }
 
-export function isEmailChange(user: Pick<UserDto, 'email'>, email: string): boolean {
-  const next = normalizeIdentifier(email);
-  return next.length > 0 && next !== user.email;
-}
-
 /**
- * The PATCH /users/me body: only the fields that actually changed, and `currentPassword` only
- * when the email changes (the one sensitive field). Returns null when nothing changed.
+ * The PATCH /users/me body: only the fields that actually changed, or null when nothing did.
+ * (The email has its own confirmed flow: see ChangeEmailDialog.)
  */
 export function buildProfileUpdate(
   user: ProfileIdentity,
@@ -39,22 +32,10 @@ export function buildProfileUpdate(
   const username = normalizeIdentifier(values.username);
   if (username !== user.username) update.username = username;
 
-  const email = normalizeIdentifier(values.email);
-  if (email !== user.email) {
-    update.email = email;
-    if (values.currentPassword) update.currentPassword = values.currentPassword;
-  }
-
   return Object.keys(update).length > 0 ? update : null;
 }
 
 /** Form defaults for a user (also used by "Discard"). */
-export function profileFormValues(user: ProfileIdentity): Required<ProfileFormValues> {
-  return {
-    firstName: user.firstName,
-    lastName: user.lastName,
-    username: user.username,
-    email: user.email,
-    currentPassword: '',
-  };
+export function profileFormValues(user: ProfileIdentity): ProfileFormValues {
+  return { firstName: user.firstName, lastName: user.lastName, username: user.username };
 }

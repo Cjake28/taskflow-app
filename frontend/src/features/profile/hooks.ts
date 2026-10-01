@@ -1,21 +1,17 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { OAUTH_PROVIDERS, type OAuthProviderId } from '@taskflow/shared';
-import { toast } from 'sonner';
 
 import { authApi } from '@/features/auth/api';
 import { authKeys } from '@/features/auth/hooks';
-import { getErrorMessage } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 
 import { profileApi } from './api';
 
-/** Sends a new confirmation link to the current address (rate-limited server-side, 3 per hour). */
-export function useResendVerification(email: string) {
-  return useMutation({
-    mutationFn: authApi.resendVerification,
-    onSuccess: () => toast.success('Confirmation link sent', { description: `Check ${email}.` }),
-    onError: (error) =>
-      toast.error("Couldn't send the link", { description: getErrorMessage(error) }),
+/** The email change waiting for its code (null when there is none). */
+export function usePendingEmailChange() {
+  return useQuery({
+    queryKey: queryKeys.account.emailChange(),
+    queryFn: ({ signal }) => profileApi.pendingEmailChange(signal),
   });
 }
 

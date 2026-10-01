@@ -24,6 +24,7 @@ export const queryKeys = {
   account: {
     sessions: () => ['account', 'sessions'] as const,
     linkedAccounts: () => ['account', 'linked-accounts'] as const,
+    emailChange: () => ['account', 'email-change'] as const,
   },
 };
 

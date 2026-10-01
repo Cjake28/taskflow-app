@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardStats } from '@/features/dashboard/hooks';
 
-import { useLinkedAccounts, useResendVerification } from '../hooks';
+import { useLinkedAccounts } from '../hooks';
 import { memberSince } from '../lib/member-since';
 import { profileTabHref } from '../lib/profile-tabs';
 import { ProfileCard } from './profile-card';
@@ -46,7 +46,6 @@ function Row({
 export function AccountOverview({ user }: { user: UserDto }) {
   const accounts = useLinkedAccounts();
   const stats = useDashboardStats();
-  const resend = useResendVerification(user.email);
 
   const methods = [
     ...(user.hasPassword ? ['Password'] : []),
@@ -67,19 +66,8 @@ export function AccountOverview({ user }: { user: UserDto }) {
                 Verified
               </span>
             ) : (
-              <span className="inline-flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
-                <span className="text-[color-mix(in_oklab,var(--status-progress)_85%,var(--foreground))]">
-                  Not verified
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8"
-                  loading={resend.isPending}
-                  onClick={() => resend.mutate()}
-                >
-                  Resend confirmation
-                </Button>
+              <span className="text-[color-mix(in_oklab,var(--status-progress)_85%,var(--foreground))]">
+                Not verified
               </span>
             )}
           </Row>
@@ -113,8 +101,8 @@ export function AccountOverview({ user }: { user: UserDto }) {
 
       {user.hasPassword ? (
         <Alert variant="info" icon={Info} title="Changing your email?">
-          We&apos;ll ask for your current password to make sure it&apos;s really you, then send a
-          confirmation link to the new address. It must not already be in use.
+          We&apos;ll ask for your current password, then email a 6-digit code to the new address.
+          Your email only changes once you enter that code, and we let the old address know.
         </Alert>
       ) : (
         <Alert
