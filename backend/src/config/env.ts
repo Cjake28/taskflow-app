@@ -33,7 +33,7 @@ const envSchema = z.object({
   SMTP_PASS: z.string().default(''),
   MAIL_FROM: z.string().min(3).default('TaskFlow <no-reply@taskflow.local>'),
 
-  STORAGE_DRIVER: z.enum(['local', 's3', 'r2']).default('local'),
+  STORAGE_DRIVER: z.enum(['local', 's3', 'r2', 'http']).default('local'),
   STORAGE_LOCAL_ROOT: z.string().min(1).default('./storage'),
   S3_BUCKET: optionalString,
   S3_REGION: optionalString,
@@ -45,6 +45,9 @@ const envSchema = z.object({
   R2_BUCKET: optionalString,
   R2_ACCESS_KEY_ID: optionalString,
   R2_SECRET_ACCESS_KEY: optionalString,
+  /** STORAGE_DRIVER=http: an authenticated object API (the Cloudflare Worker's R2 binding). */
+  STORAGE_HTTP_URL: optionalString,
+  STORAGE_HTTP_TOKEN: optionalString,
 
   UPLOAD_MAX_FILE_MB: z.coerce.number().positive().max(50).default(5),
   USER_STORAGE_QUOTA_MB: z.coerce.number().positive().default(100),
@@ -64,6 +67,7 @@ const DRIVER_REQUIREMENTS = {
   local: [],
   s3: ['S3_BUCKET', 'S3_REGION', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'],
   r2: ['R2_ACCOUNT_ID', 'R2_BUCKET', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'],
+  http: ['STORAGE_HTTP_URL', 'STORAGE_HTTP_TOKEN'],
 } as const satisfies Record<string, ReadonlyArray<keyof z.infer<typeof envSchema>>>;
 
 const refinedSchema = envSchema.superRefine((env, ctx) => {
@@ -78,6 +82,9 @@ const refinedSchema = envSchema.superRefine((env, ctx) => {
   }
   if (env.OAUTH_REDIRECT_BASE_URL && !URL.canParse(env.OAUTH_REDIRECT_BASE_URL)) {
     ctx.addIssue({ code: 'custom', path: ['OAUTH_REDIRECT_BASE_URL'], message: 'must be a URL' });
+  }
+  if (env.STORAGE_HTTP_URL && !URL.canParse(env.STORAGE_HTTP_URL)) {
+    ctx.addIssue({ code: 'custom', path: ['STORAGE_HTTP_URL'], message: 'must be a URL' });
   }
   if (env.S3_ENDPOINT && !URL.canParse(env.S3_ENDPOINT)) {
     ctx.addIssue({ code: 'custom', path: ['S3_ENDPOINT'], message: 'must be a URL' });
