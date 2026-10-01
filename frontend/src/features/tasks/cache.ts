@@ -1,15 +1,24 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
-import type { ImageDto, TaskDetailsDto, TaskDto, TaskStatus } from '@taskflow/shared';
+import type {
+  ImageDto,
+  PaginationMeta,
+  TaskDetailsDto,
+  TaskDto,
+  TaskStatus,
+} from '@taskflow/shared';
 
 import { queryKeys } from '@/lib/query-keys';
 
-import type { TaskListResult } from './api';
 import { isBoardColumnQuery, statusesOfQuery } from './url-state';
 
 /*
  * Optimistic cache edits (spec §14.9). Every task query lives under ['tasks', …]; lists carry
  * their exact query object as the third key segment, which tells us whether a list is filtered
  * by status or is a Kanban column.
+ *
+ * Lists are cached in two shapes: this feature stores `{ items, meta }`, the dashboard stores the
+ * raw `{ data, meta }` envelope. Both are read and written back in their own shape, so a change
+ * made here also shows up on the dashboard straight away.
  */
 
 export type TaskCacheSnapshot = Array<[QueryKey, unknown]>;
@@ -22,25 +31,53 @@ export function restoreTaskCaches(queryClient: QueryClient, snapshot: TaskCacheS
   for (const [key, data] of snapshot) queryClient.setQueryData(key, data);
 }
 
-function listEntries(queryClient: QueryClient) {
-  return queryClient.getQueriesData<TaskListResult>({ queryKey: queryKeys.tasks.lists() });
+interface CachedList {
+  key: QueryKey;
+  params: unknown;
+  items: TaskDto[];
+  /** Writes new items (and a total change) back in the entry's original shape. */
+  write: (items: TaskDto[], totalDelta?: number) => void;
 }
 
-const paramsOf = (key: QueryKey): unknown => key[2];
+function withTotal(meta: PaginationMeta, delta: number): PaginationMeta {
+  const total = Math.max(0, meta.total + delta);
+  return {
+    ...meta,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / Math.max(1, meta.pageSize))),
+  };
+}
+
+function cachedLists(queryClient: QueryClient): CachedList[] {
+  const lists: CachedList[] = [];
+  for (const [key, data] of queryClient.getQueriesData({ queryKey: queryKeys.tasks.lists() })) {
+    if (typeof data !== 'object' || data === null) continue;
+    const record = data as { items?: unknown; data?: unknown; meta?: PaginationMeta };
+    const field = Array.isArray(record.items)
+      ? 'items'
+      : Array.isArray(record.data)
+        ? 'data'
+        : null;
+    if (!field) continue;
+    lists.push({
+      key,
+      params: key[2],
+      items: record[field] as TaskDto[],
+      write: (items, totalDelta = 0) =>
+        queryClient.setQueryData(key, {
+          ...record,
+          [field]: items,
+          ...(record.meta && totalDelta !== 0 ? { meta: withTotal(record.meta, totalDelta) } : {}),
+        }),
+    });
+  }
+  return lists;
+}
 
 /** Board columns sharing the same search/priority/overdue filters belong to one board. */
 function boardSignature(params: unknown): string {
   const { status: _status, ...rest } = (params ?? {}) as Record<string, unknown>;
   return JSON.stringify(Object.entries(rest).sort(([a], [b]) => a.localeCompare(b)));
-}
-
-function withTotal(result: TaskListResult, delta: number): TaskListResult['meta'] {
-  const total = Math.max(0, result.meta.total + delta);
-  return {
-    ...result.meta,
-    total,
-    totalPages: Math.max(1, Math.ceil(total / Math.max(1, result.meta.pageSize))),
-  };
 }
 
 /** The task with a new status, keeping the derived fields consistent. */
@@ -59,8 +96,8 @@ export function withStatus(task: TaskDto, status: TaskStatus, now: Date = new Da
 export function findCachedTask(queryClient: QueryClient, id: string): TaskDto | undefined {
   const detail = queryClient.getQueryData<TaskDetailsDto>(queryKeys.tasks.detail(id));
   if (detail) return detail;
-  for (const [, data] of listEntries(queryClient)) {
-    const found = data?.items.find((task) => task.id === id);
+  for (const list of cachedLists(queryClient)) {
+    const found = list.items.find((task) => task.id === id);
     if (found) return found;
   }
   return undefined;
@@ -82,36 +119,26 @@ export function updateTaskInCaches(
   const statusChanged = next.status !== original.status;
   const boards = new Set<string>();
 
-  for (const [key, data] of listEntries(queryClient)) {
-    if (!data) continue;
-    const params = paramsOf(key);
-    const index = data.items.findIndex((task) => task.id === id);
-    if (index < 0) continue;
-    if (isBoardColumnQuery(params)) boards.add(boardSignature(params));
-    const statuses = statusesOfQuery(params);
+  for (const list of cachedLists(queryClient)) {
+    if (!list.items.some((task) => task.id === id)) continue;
+    if (isBoardColumnQuery(list.params)) boards.add(boardSignature(list.params));
+    const statuses = statusesOfQuery(list.params);
     if (statusChanged && statuses && !statuses.includes(next.status)) {
-      queryClient.setQueryData<TaskListResult>(key, {
-        items: data.items.filter((task) => task.id !== id),
-        meta: withTotal(data, -1),
-      });
+      list.write(
+        list.items.filter((task) => task.id !== id),
+        -1,
+      );
     } else {
-      queryClient.setQueryData<TaskListResult>(key, {
-        ...data,
-        items: data.items.map((task) => (task.id === id ? next : task)),
-      });
+      list.write(list.items.map((task) => (task.id === id ? next : task)));
     }
   }
 
   if (statusChanged) {
-    for (const [key, data] of listEntries(queryClient)) {
-      const params = paramsOf(key);
-      if (!data || !isBoardColumnQuery(params, next.status)) continue;
-      if (!boards.has(boardSignature(params))) continue;
-      if (data.items.some((task) => task.id === id)) continue;
-      queryClient.setQueryData<TaskListResult>(key, {
-        items: [next, ...data.items],
-        meta: withTotal(data, 1),
-      });
+    for (const list of cachedLists(queryClient)) {
+      if (!isBoardColumnQuery(list.params, next.status)) continue;
+      if (!boards.has(boardSignature(list.params))) continue;
+      if (list.items.some((task) => task.id === id)) continue;
+      list.write([next, ...list.items], 1);
     }
   }
 
@@ -121,12 +148,12 @@ export function updateTaskInCaches(
 }
 
 export function removeTaskFromCaches(queryClient: QueryClient, id: string) {
-  for (const [key, data] of listEntries(queryClient)) {
-    if (!data?.items.some((task) => task.id === id)) continue;
-    queryClient.setQueryData<TaskListResult>(key, {
-      items: data.items.filter((task) => task.id !== id),
-      meta: withTotal(data, -1),
-    });
+  for (const list of cachedLists(queryClient)) {
+    if (!list.items.some((task) => task.id === id)) continue;
+    list.write(
+      list.items.filter((task) => task.id !== id),
+      -1,
+    );
   }
 }
 
@@ -151,11 +178,8 @@ export function setTaskImages(
     ...summary,
     images,
   });
-  for (const [key, data] of listEntries(queryClient)) {
-    if (!data?.items.some((task) => task.id === taskId)) continue;
-    queryClient.setQueryData<TaskListResult>(key, {
-      ...data,
-      items: data.items.map((task) => (task.id === taskId ? { ...task, ...summary } : task)),
-    });
+  for (const list of cachedLists(queryClient)) {
+    if (!list.items.some((task) => task.id === taskId)) continue;
+    list.write(list.items.map((task) => (task.id === taskId ? { ...task, ...summary } : task)));
   }
 }

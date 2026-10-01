@@ -71,6 +71,28 @@ describe('updateTaskInCaches', () => {
     expect(client.getQueryData<TaskListResult>(column('COMPLETED'))?.meta.total).toBe(2);
   });
 
+  it('also updates lists cached as raw { data, meta } envelopes (the dashboard)', () => {
+    const { client } = seed();
+    const dueSoon = queryKeys.tasks.list({
+      status: 'TODO,IN_PROGRESS',
+      dueTo: '2026-10-08T00:00:00.000Z',
+      pageSize: 6,
+    });
+    client.setQueryData(dueSoon, {
+      data: [task('a', 'TODO'), task('b', 'IN_PROGRESS')],
+      meta: { page: 1, pageSize: 6, total: 2, totalPages: 1 },
+    });
+
+    updateTaskInCaches(client, 'a', (t) => withStatus(t, 'COMPLETED'));
+    expect(client.getQueryData(dueSoon)).toMatchObject({
+      data: [{ id: 'b' }],
+      meta: { total: 1 },
+    });
+
+    removeTaskFromCaches(client, 'b');
+    expect(client.getQueryData(dueSoon)).toMatchObject({ data: [], meta: { total: 0 } });
+  });
+
   it('keeps derived fields consistent', () => {
     const now = new Date('2026-10-05T10:00:00.000Z');
     const late = task('x', 'TODO', { dueDate: '2026-10-01T00:00:00.000Z', isOverdue: true });
