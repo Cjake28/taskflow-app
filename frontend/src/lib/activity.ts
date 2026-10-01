@@ -72,11 +72,17 @@ export function describeActivity(activity: ActivityDto): ActivityView {
       };
     }
     case 'IMAGE_ADDED': {
-      const count = Number(asChange(changes.images).count ?? 1);
+      const images = asChange(changes.images) as Change & { restored?: unknown };
+      const count = Number(images.count ?? 1);
       return {
         icon: ImagePlus,
         tint: 'var(--status-done)',
-        summary: count === 1 ? 'Added an image' : `Added ${count} images`,
+        summary:
+          images.restored === true
+            ? 'Restored an image'
+            : count === 1
+              ? 'Added an image'
+              : `Added ${count} images`,
         changes: [],
       };
     }

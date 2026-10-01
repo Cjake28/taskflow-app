@@ -3,6 +3,12 @@ import type { ActivityDto } from '@taskflow/shared';
 /** Uploads within this window read as one "Added N images" entry. */
 const IMAGE_BURST_MS = 5 * 60 * 1000;
 
+/** Undoing a removal is logged as IMAGE_ADDED with `restored: true`; it reads on its own line. */
+function isRestore(activity: ActivityDto): boolean {
+  const images = activity.changes?.images;
+  return typeof images === 'object' && images !== null && 'restored' in images;
+}
+
 function imageCount(activity: ActivityDto): number {
   const images = activity.changes?.images;
   const count =
@@ -25,6 +31,8 @@ export function coalesceActivities(activities: readonly ActivityDto[]): Activity
       previous &&
       previous.action === 'IMAGE_ADDED' &&
       activity.action === 'IMAGE_ADDED' &&
+      !isRestore(previous) &&
+      !isRestore(activity) &&
       Math.abs(Date.parse(previous.createdAt) - Date.parse(activity.createdAt)) <= IMAGE_BURST_MS
     ) {
       result[result.length - 1] = {
