@@ -13,12 +13,20 @@ describe('API docs', () => {
     expect(res.status).toBe(200);
     expect(res.body.openapi).toBe('3.1.0');
     expect(Object.keys(res.body.paths)).toEqual(
-      expect.arrayContaining(['/auth/login', '/tasks', '/tasks/{id}/images', '/dashboard/stats']),
+      expect.arrayContaining([
+        '/auth/login',
+        '/tasks',
+        '/tasks/{id}/images',
+        '/dashboard/stats',
+        '/notifications',
+        '/notifications/preferences',
+      ]),
     );
     const createTask = res.body.paths['/tasks'].post.requestBody.content['application/json'].schema;
     expect(createTask.required).toEqual(['title']);
     expect(createTask.properties.title).toMatchObject({ type: 'string', maxLength: 200 });
     expect(createTask.additionalProperties).toBe(false);
+    expect(createTask.properties.reminders).toMatchObject({ type: 'array', maxItems: 5 });
   });
 
   it('serves Swagger UI', async () => {
