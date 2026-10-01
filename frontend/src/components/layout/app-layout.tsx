@@ -1,5 +1,7 @@
 import { Outlet } from 'react-router';
 
+import { TasksHotkeys } from '@/features/tasks/components/tasks-hotkeys';
+
 import { MobileHeader, MobileTabBar } from './mobile-nav';
 import { Sidebar } from './sidebar';
 
@@ -28,6 +30,7 @@ export function AppLayout() {
         </main>
       </div>
       <MobileTabBar className="lg:hidden" />
+      <TasksHotkeys />
     </div>
   );
 }
