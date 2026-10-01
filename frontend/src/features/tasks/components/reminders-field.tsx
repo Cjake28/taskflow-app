@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { DATE_ONLY_REMINDER_TIME, REMINDER_LIMITS } from '@taskflow/shared';
 import { AlarmClock, BellPlus, CalendarDays, CircleCheck, Clock3, Trash2 } from 'lucide-react';
 import { useFieldArray, useWatch, type UseFormReturn } from 'react-hook-form';
@@ -37,6 +37,8 @@ export function RemindersField({
 }) {
   const labelId = useId();
   const hintId = useId();
+  // When the dialog opened; enough to flag "before the due time" reminders already in the past.
+  const [now] = useState(() => Date.now());
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'reminders',
@@ -88,6 +90,7 @@ export function RemindersField({
             const fires =
               offset !== null && dueDate ? relativeRemindAt(offset, dueDate, dueTime) : null;
             const sent = row.sentAt !== null && reminderKey(row) === row.original;
+            const passed = fires !== null && !sent && fires.getTime() <= now;
             return (
               <li
                 key={field.fieldKey}
@@ -159,14 +162,16 @@ export function RemindersField({
                   <p
                     className={cn(
                       'text-[12.5px] font-semibold',
-                      fires
+                      fires && !passed
                         ? 'text-muted-foreground'
                         : 'text-[color-mix(in_oklab,var(--status-progress)_80%,var(--foreground))]',
                     )}
                   >
-                    {fires
-                      ? `Goes out ${formatReminderTime(fires)}`
-                      : 'Needs a due date: add one, or pick a custom time.'}
+                    {!fires
+                      ? 'Needs a due date: add one, or pick a custom time.'
+                      : passed
+                        ? `${formatReminderTime(fires)} has already passed, so this one won't go out.`
+                        : `Goes out ${formatReminderTime(fires)}`}
                   </p>
                 )}
 

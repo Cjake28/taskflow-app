@@ -250,11 +250,13 @@ function TaskDetails({ task, onDeleted }: { task: TaskDetailsDto; onDeleted: () 
         </div>
       </header>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      {/* The side column spans an extra flexible row, so when it is the taller one its height
+          lands there instead of opening gaps between the cards on the left. */}
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[auto_auto_auto_1fr]">
         <Card title="Description" className="lg:col-start-1">
           <Description text={task.description} />
         </Card>
-        <div className="flex flex-col gap-5 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:self-start">
+        <div className="flex flex-col gap-5 lg:col-start-2 lg:row-span-4 lg:row-start-1 lg:self-start">
           <TaskMetaPanel
             task={task}
             onStatusChange={(status) =>

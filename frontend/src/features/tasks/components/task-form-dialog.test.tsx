@@ -87,6 +87,18 @@ describe('TaskFormDialog reminders', () => {
     ]);
   });
 
+  it('warns when a reminder before the due time has already passed', async () => {
+    const events = userEvent.setup();
+    renderDialog();
+    await events.type(screen.getByLabelText(/Due date/), '2020-01-05');
+    await events.click(screen.getByRole('button', { name: 'Add reminder' }));
+    const row = screen.getByRole('listitem', { name: 'Reminder 1' });
+    expect(
+      within(row).getByText(/has already passed, so this one won't go out/),
+    ).toBeInTheDocument();
+    expect(within(row).queryByText(/Goes out/)).not.toBeInTheDocument();
+  });
+
   it('offers a custom time when the task has no due date', async () => {
     const events = userEvent.setup();
     renderDialog();
