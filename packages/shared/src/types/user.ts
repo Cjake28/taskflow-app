@@ -11,6 +11,16 @@ export interface UserDto {
   createdAt: string;
 }
 
+/** A sign-up waiting for its emailed code; the account is created only after verification. */
+export interface PendingRegistrationDto {
+  registrationId: string;
+  email: string;
+  /** When the current code stops working. */
+  expiresAt: string;
+  /** Earliest time a new code can be requested. */
+  resendAvailableAt: string;
+}
+
 export interface SessionPayload {
   user: UserDto;
   accessTokenExpiresAt: string;
