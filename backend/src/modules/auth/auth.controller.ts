@@ -1,7 +1,12 @@
-import type { LoginData, RegisterData } from '@taskflow/shared';
+import type {
+  LoginData,
+  RegisterData,
+  ResendRegistrationData,
+  VerifyRegistrationData,
+} from '@taskflow/shared';
 import type { Request, Response } from 'express';
 import { sessionMeta } from '../../common/http/request-meta';
-import { created, noContent, ok } from '../../common/http/respond';
+import { accepted, created, noContent, ok } from '../../common/http/respond';
 import { requireUser } from '../../common/middleware/authenticate';
 import {
   ACCESS_COOKIE,
@@ -17,11 +22,13 @@ import { toUserResponse } from '../users/users.mapper';
 import type { UsersService } from '../users/users.service';
 import { toSessionPayload } from './auth.mapper';
 import type { AuthService } from './auth.service';
+import type { RegistrationService } from './registration.service';
 import type { RefreshResult, SessionsService } from './sessions.service';
 
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
+    private readonly registration: RegistrationService,
     private readonly sessions: SessionsService,
     private readonly accessTokens: AccessTokenService,
     private readonly users: UsersService,
@@ -29,13 +36,26 @@ export class AuthController {
     private readonly clock: Clock,
   ) {}
 
+  /** Step 1: validate the details and email a one-time code (no account yet). */
   register = async (req: Request, res: Response) => {
-    const { user, session } = await this.auth.register(
-      req.valid.body as RegisterData,
+    accepted(res, await this.registration.start(req.valid.body as RegisterData));
+  };
+
+  /** Step 2: the code creates the account and signs the user in. */
+  verifyRegistration = async (req: Request, res: Response) => {
+    const { registrationId, code } = req.valid.body as VerifyRegistrationData;
+    const { user, session } = await this.registration.verify(
+      registrationId,
+      code,
       sessionMeta(req),
     );
     setAuthCookies(res, this.env, session, this.clock.now());
     created(res, toSessionPayload(toUserResponse(user), session.access));
+  };
+
+  resendRegistrationCode = async (req: Request, res: Response) => {
+    const { registrationId } = req.valid.body as ResendRegistrationData;
+    ok(res, await this.registration.resend(registrationId));
   };
 
   login = async (req: Request, res: Response) => {

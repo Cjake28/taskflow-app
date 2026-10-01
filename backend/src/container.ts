@@ -23,6 +23,7 @@ import { AuthCleanupService } from './modules/auth/auth-cleanup.service';
 import { AuthService } from './modules/auth/auth.service';
 import { EmailVerificationService } from './modules/auth/email-verification.service';
 import { PasswordResetService } from './modules/auth/password-reset.service';
+import { RegistrationService } from './modules/auth/registration.service';
 import { SessionsService } from './modules/auth/sessions.service';
 import { DashboardService } from './modules/dashboard/dashboard.service';
 import { AvatarImportService } from './modules/images/avatar-import.service';
@@ -63,6 +64,7 @@ export interface Container {
   users: UsersService;
   breachChecker: PasswordBreachChecker;
   auth: AuthService;
+  registration: RegistrationService;
   jobs: JobQueue;
   mailTransport: MailTransport;
   accountEmails: AccountEmailsService;
@@ -133,12 +135,24 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     { ttlHours: env.EMAIL_VERIFICATION_TTL_HOURS, frontendUrl: env.FRONTEND_URL },
   );
   const users = new UsersService(prisma, sessions, jobs, breachChecker, clock, emailVerification);
-  const auth = new AuthService(
+  const auth = new AuthService(prisma, sessions, new LoginThrottle(limiters.loginFailures));
+  const registration = new RegistrationService(
     prisma,
+    redis,
+    jobs,
     sessions,
     breachChecker,
-    new LoginThrottle(limiters.loginFailures),
-    emailVerification,
+    accountEmails,
+    clock,
+    logger,
+    {
+      otpTtlMinutes: env.SIGNUP_OTP_TTL_MINUTES,
+      // A purpose-specific key derived from the server secret.
+      otpSecret: `${env.JWT_ACCESS_SECRET}:signup-otp`,
+      maxAttempts: 5,
+      resendCooldownSeconds: 60,
+      maxSends: 5,
+    },
   );
   const passwordReset = new PasswordResetService(
     prisma,
@@ -190,6 +204,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     accountEmails,
     authCleanup,
     emailVerification,
+    registration,
     storage,
     images,
     avatarImport,
@@ -215,6 +230,7 @@ export async function createContainer(overrides: ContainerOverrides = {}): Promi
     accountEmails,
     passwordReset,
     emailVerification,
+    registration,
     authCleanup,
     activities,
     tasks,

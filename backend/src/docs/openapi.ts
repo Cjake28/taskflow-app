@@ -5,10 +5,12 @@ import {
   loginSchema,
   moveTaskSchema,
   registerSchema,
+  resendRegistrationSchema,
   resetPasswordSchema,
   updateProfileSchema,
   updateTaskSchema,
   verifyEmailSchema,
+  verifyRegistrationSchema,
   verifyResetTokenSchema,
 } from '@taskflow/shared';
 import { z, type ZodType } from 'zod';
@@ -106,6 +108,15 @@ const schemas: Record<string, Json> = {
   Session: {
     type: 'object',
     properties: { user: ref('User'), accessTokenExpiresAt: DATE_TIME },
+  },
+  PendingRegistration: {
+    type: 'object',
+    properties: {
+      registrationId: { type: 'string', format: 'uuid' },
+      email: { type: 'string', format: 'email' },
+      expiresAt: DATE_TIME,
+      resendAvailableAt: DATE_TIME,
+    },
   },
   DeviceSession: {
     type: 'object',
@@ -290,10 +301,33 @@ const paths: Record<string, Json> = {
   '/auth/register': {
     post: {
       tags: ['Auth'],
-      summary: 'Create an account and sign in',
+      summary: 'Start a sign-up: validates the details and emails a 6-digit code (no account yet)',
       security: [],
       requestBody: body(registerSchema),
-      responses: { 201: ok(ref('Session'), 'Created; auth cookies set'), ...errors(400, 409, 429) },
+      responses: { 202: ok(ref('PendingRegistration'), 'Code sent'), ...errors(400, 409, 429) },
+    },
+  },
+  '/auth/register/verify': {
+    post: {
+      tags: ['Auth'],
+      summary: 'Confirm the emailed code: creates the account and signs in',
+      description:
+        'Codes expire after 10 minutes; 5 wrong codes cancel the sign-up (`OTP_ATTEMPTS_EXCEEDED`).',
+      security: [],
+      requestBody: body(verifyRegistrationSchema),
+      responses: {
+        201: ok(ref('Session'), 'Created; auth cookies set'),
+        ...errors(400, 409, 429),
+      },
+    },
+  },
+  '/auth/register/resend': {
+    post: {
+      tags: ['Auth'],
+      summary: 'Email a new code (60-second cooldown; the previous code stops working)',
+      security: [],
+      requestBody: body(resendRegistrationSchema),
+      responses: { 200: ok(ref('PendingRegistration')), ...errors(400, 429) },
     },
   },
   '/auth/login': {

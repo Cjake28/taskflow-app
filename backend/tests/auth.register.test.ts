@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { setCookies } from './setup/cookies';
 import { createHarness, type Harness } from './setup/harness';
+import { lastCodeFor, registerAndVerify } from './setup/signup';
 
 const URL_REGISTER = '/api/v1/auth/register';
 const valid = {
@@ -21,8 +22,26 @@ describe('POST /api/v1/auth/register', () => {
   beforeEach(() => h.reset());
   afterAll(() => h.close());
 
-  it('creates the account, signs the user in and stores only a hash', async () => {
+  it('emails a code and creates nothing until the code is confirmed', async () => {
     const res = await h.post(URL_REGISTER).send(valid);
+
+    expect(res.status).toBe(202);
+    expect(res.body.data).toMatchObject({ email: 'juan@example.com' });
+    expect(res.body.data.registrationId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(Date.parse(res.body.data.expiresAt)).toBeGreaterThan(h.clock.now().getTime());
+    expect(setCookies(res).tf_access).toBeUndefined();
+    expect(await h.container.prisma.user.count()).toBe(0);
+
+    const [email] = h.mail.sent;
+    expect(email).toMatchObject({ to: 'juan@example.com' });
+    expect(email?.subject).toMatch(/^\d{6} is your TaskFlow verification code$/);
+    expect(JSON.stringify(await h.container.redis.keys('tf:signup:*'))).not.toContain(
+      lastCodeFor(h, 'juan@example.com'),
+    );
+  });
+
+  it('creates the account, signs the user in and stores only a hash after the code', async () => {
+    const res = await registerAndVerify(h, valid);
 
     expect(res.status).toBe(201);
     expect(res.body.data.user).toMatchObject({
@@ -31,6 +50,7 @@ describe('POST /api/v1/auth/register', () => {
       username: 'juan',
       email: 'juan@example.com',
       hasPassword: true,
+      emailVerified: true,
       avatarUrl: null,
     });
     expect(Date.parse(res.body.data.accessTokenExpiresAt)).toBeGreaterThan(h.clock.now().getTime());
@@ -48,18 +68,21 @@ describe('POST /api/v1/auth/register', () => {
     });
     expect(row.passwordHash).toMatch(/^\$argon2id\$/);
     expect(row.passwordHash).not.toContain(valid.password);
+    expect(row.emailVerifiedAt).not.toBeNull();
   });
 
   it('normalises email and username before saving', async () => {
-    const res = await h
-      .post(URL_REGISTER)
-      .send({ ...valid, email: '  Juan@Example.COM ', username: 'Juan' });
+    const res = await registerAndVerify(h, {
+      ...valid,
+      email: '  Juan@Example.COM ',
+      username: 'Juan',
+    });
     expect(res.status).toBe(201);
     expect(res.body.data.user).toMatchObject({ email: 'juan@example.com', username: 'juan' });
   });
 
   it('rejects an email that differs only by case', async () => {
-    await h.post(URL_REGISTER).send(valid);
+    await registerAndVerify(h, valid);
     const res = await h
       .post(URL_REGISTER)
       .send({ ...valid, username: 'other', email: 'JUAN@example.com' });
@@ -72,7 +95,7 @@ describe('POST /api/v1/auth/register', () => {
   });
 
   it('reports a duplicate username and email together', async () => {
-    await h.post(URL_REGISTER).send(valid);
+    await registerAndVerify(h, valid);
     const res = await h.post(URL_REGISTER).send(valid);
 
     expect(res.status).toBe(409);

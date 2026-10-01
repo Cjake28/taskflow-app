@@ -2,6 +2,7 @@ import type { Db } from '../database/prisma';
 import type { MailTransport } from './mail.transport';
 import { passwordChangedEmail } from './templates/password-changed';
 import { passwordResetEmail } from './templates/password-reset';
+import { signupCodeEmail } from './templates/signup-code';
 import { verifyEmailEmail } from './templates/verify-email';
 
 export class AccountEmailsService {
@@ -20,6 +21,15 @@ export class AccountEmailsService {
       resetUrl,
       ttlMinutes: this.config.resetTtlMinutes,
     });
+    await this.transport.send({ to: user.email, ...content });
+  }
+
+  async sendSignupCode(
+    user: { email: string; firstName: string },
+    code: string,
+    ttlMinutes: number,
+  ): Promise<void> {
+    const content = signupCodeEmail({ firstName: user.firstName, code, ttlMinutes });
     await this.transport.send({ to: user.email, ...content });
   }
 

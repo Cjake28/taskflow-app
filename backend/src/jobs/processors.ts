@@ -3,6 +3,7 @@ import type { AccountEmailsService } from '../mail/account-emails.service';
 import type { AuthCleanupService } from '../modules/auth/auth-cleanup.service';
 import type { EmailVerificationService } from '../modules/auth/email-verification.service';
 import type { PasswordResetService } from '../modules/auth/password-reset.service';
+import type { RegistrationService } from '../modules/auth/registration.service';
 import type { AvatarImportService } from '../modules/images/avatar-import.service';
 import type { ImagesService } from '../modules/images/images.service';
 import type { StorageDriver } from '../storage/storage.driver';
@@ -14,6 +15,7 @@ export interface ProcessorDeps {
   accountEmails: AccountEmailsService;
   authCleanup: AuthCleanupService;
   emailVerification: EmailVerificationService;
+  registration: RegistrationService;
   storage: StorageDriver;
   images: ImagesService;
   avatarImport: AvatarImportService;
@@ -24,6 +26,7 @@ export function createJobProcessors(deps: ProcessorDeps): JobProcessors {
     'email.password-reset-request': ({ email }) => deps.passwordReset.processResetRequest(email),
     'email.password-changed': ({ userId }) => deps.accountEmails.sendPasswordChanged(userId),
     'email.verify-email': ({ userId }) => deps.emailVerification.processVerification(userId),
+    'email.signup-otp': ({ registrationId }) => deps.registration.sendCode(registrationId),
     'auth.cleanup': async () => {
       const removed = await deps.authCleanup.run();
       deps.logger.info(removed, 'Auth cleanup finished');

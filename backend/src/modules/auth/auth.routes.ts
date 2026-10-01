@@ -2,8 +2,10 @@ import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
+  resendRegistrationSchema,
   resetPasswordSchema,
   verifyEmailSchema,
+  verifyRegistrationSchema,
   verifyResetTokenSchema,
 } from '@taskflow/shared';
 import { Router, type RequestHandler } from 'express';
@@ -30,6 +32,18 @@ export function createAuthRouter(
     rateLimit(deps.limiters.register),
     validate({ body: registerSchema }),
     auth.register,
+  );
+  router.post(
+    '/register/verify',
+    rateLimit(deps.limiters.signupOtpIp),
+    validate({ body: verifyRegistrationSchema }),
+    auth.verifyRegistration,
+  );
+  router.post(
+    '/register/resend',
+    rateLimit(deps.limiters.signupOtpIp),
+    validate({ body: resendRegistrationSchema }),
+    auth.resendRegistrationCode,
   );
   router.post(
     '/login',

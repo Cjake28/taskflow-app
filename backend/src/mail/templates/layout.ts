@@ -11,6 +11,8 @@ interface LayoutOptions {
   heading: string;
   paragraphs: string[];
   button?: { label: string; url: string };
+  /** A one-time code shown large, between the paragraphs and the footnote. */
+  code?: string;
   footnote?: string;
 }
 
@@ -32,6 +34,10 @@ export function renderEmail(options: LayoutOptions): string {
 </td></tr></table>`
     : '';
 
+  const code = options.code
+    ? `<p style="margin:6px 0 22px;padding:16px 0;text-align:center;font-size:32px;font-weight:800;letter-spacing:10px;color:#1B1C3A;background:#F0F1F9;border-radius:14px;font-family:'Courier New',monospace;">${escapeHtml(options.code)}</p>`
+    : '';
+
   const footnote = options.footnote
     ? `<p style="margin:0;font-size:12.5px;line-height:1.6;color:#858AA6;">${escapeHtml(options.footnote)}</p>`
     : '';
@@ -51,6 +57,7 @@ export function renderEmail(options: LayoutOptions): string {
 </tr></table>
 <h1 style="margin:0 0 12px;font-size:21px;line-height:1.3;color:#1B1C3A;">${escapeHtml(options.heading)}</h1>
 ${paragraphs}
+${code}
 ${button}
 ${footnote}
 </td></tr>

@@ -20,6 +20,7 @@ const envSchema = z.object({
   RATE_LIMIT_SCALE: z.coerce.number().positive().default(1),
   PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(30),
   EMAIL_VERIFICATION_TTL_HOURS: z.coerce.number().int().positive().default(24),
+  SIGNUP_OTP_TTL_MINUTES: z.coerce.number().int().positive().default(10),
 
   RUN_WORKER_IN_API: booleanString.default(true),
   /** Swagger UI at /api/docs. */

@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { setCookies } from './setup/cookies';
 import { createUser, DEFAULT_PASSWORD } from './setup/factories';
 import { resetTokenFrom } from './setup/fakes';
 import { createHarness, type Harness } from './setup/harness';
@@ -13,26 +12,31 @@ afterAll(() => h.close());
 
 const HOUR = 60 * 60 * 1000;
 
+/** An account whose address is not confirmed yet, which asks for a link. */
 async function register() {
-  const res = await h.post('/api/v1/auth/register').send({
-    firstName: 'Maria',
-    lastName: 'Santos',
+  const { user } = await createUser(h.container.prisma, {
     username: 'maria',
     email: 'maria@example.com',
-    password: DEFAULT_PASSWORD,
-    confirmPassword: DEFAULT_PASSWORD,
   });
-  expect(res.status).toBe(201);
-  return { res, cookie: `tf_access=${setCookies(res).tf_access!.value}` };
+  const session = await h.container.sessions.create(user.id, {
+    persistent: false,
+    userAgent: 'vitest',
+    ip: '127.0.0.1',
+  });
+  const cookie = `tf_access=${session.access.token}`;
+  const res = await h.post('/api/v1/auth/verify-email/resend').set('Cookie', cookie);
+  expect(res.status).toBe(204);
+  return { cookie };
 }
 
 const verificationEmails = () =>
   h.mail.sent.filter((message) => message.subject === 'Confirm your email for TaskFlow');
 
 describe('email verification', () => {
-  it('sends a confirmation link on registration and verifies the address once', async () => {
-    const { res, cookie } = await register();
-    expect(res.body.data.user.emailVerified).toBe(false);
+  it('sends a confirmation link and verifies the address once', async () => {
+    const { cookie } = await register();
+    const before = await h.get('/api/v1/users/me').set('Cookie', cookie);
+    expect(before.body.data.emailVerified).toBe(false);
 
     const [email] = verificationEmails();
     expect(email?.to).toBe('maria@example.com');

@@ -7,7 +7,15 @@ import { EmailVerificationController } from './email-verification.controller';
 import { PasswordResetController } from './password-reset.controller';
 
 export function authModule(c: Container): Router {
-  const auth = new AuthController(c.auth, c.sessions, c.accessTokens, c.users, c.env, c.clock);
+  const auth = new AuthController(
+    c.auth,
+    c.registration,
+    c.sessions,
+    c.accessTokens,
+    c.users,
+    c.env,
+    c.clock,
+  );
   const passwordReset = new PasswordResetController(
     c.passwordReset,
     c.limiters.forgotEmail,
