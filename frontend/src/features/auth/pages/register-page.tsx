@@ -2,8 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ErrorCode, registerSchema } from '@taskflow/shared';
 import { AtSign, Mail } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
-import { Link, useSearchParams } from 'react-router';
-import { toast } from 'sonner';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { Alert } from '@/components/common/alert';
 import { FormField } from '@/components/common/form-field';
@@ -16,12 +15,14 @@ import { applyServerErrors } from '@/lib/form-errors';
 
 import { RegisterFloats } from '../components/brand-visuals';
 import { OAuthButtons } from '../components/oauth-buttons';
+import { savePendingSignup } from '../pending-signup';
 import { sanitizeRedirect, withRedirect } from '../redirect';
 import { useAuth } from '../use-auth';
 
 export function RegisterPage() {
   const { register: createAccount } = useAuth();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const redirect = sanitizeRedirect(searchParams.get('redirect'));
 
   const form = useForm({
@@ -41,10 +42,10 @@ export function RegisterPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      const session = await createAccount(values);
-      toast.success(`Welcome to TaskFlow, ${session.user.firstName}!`, {
-        description: 'Your account is ready.',
-      });
+      // The server checks everything, then emails a code; the account is created after it.
+      const pending = await createAccount(values);
+      savePendingSignup({ ...pending, firstName: values.firstName });
+      await navigate(withRedirect('/register/verify', redirect));
     } catch (error) {
       applyServerErrors(form, error, {
         codeFields: { [ErrorCode.EMAIL_TAKEN]: 'email', [ErrorCode.USERNAME_TAKEN]: 'username' },

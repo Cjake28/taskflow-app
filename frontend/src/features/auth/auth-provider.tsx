@@ -167,8 +167,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [startSession],
   );
 
-  const register = useCallback(
-    async (input: RegisterData) => startSession(await authApi.register(input)),
+  const register = useCallback((input: RegisterData) => authApi.register(input), []);
+
+  const verifyRegistration = useCallback(
+    async (registrationId: string, code: string) =>
+      startSession(await authApi.verifyRegistration(registrationId, code)),
     [startSession],
   );
 
@@ -211,13 +214,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       user: state.user,
       login,
       register,
+      verifyRegistration,
       logout,
       clearSession,
       updateUser,
       bootError,
       retryBoot,
     }),
-    [state, login, register, logout, clearSession, updateUser, bootError, retryBoot],
+    [
+      state,
+      login,
+      register,
+      verifyRegistration,
+      logout,
+      clearSession,
+      updateUser,
+      bootError,
+      retryBoot,
+    ],
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
