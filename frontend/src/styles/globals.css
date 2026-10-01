@@ -194,6 +194,7 @@
   --radius-xl: var(--radius);
   --radius-input: 14px;
   --radius-thumb: 16px;
+  --radius-item: 18px; /* cards inside a list or column: board cards, task cards, rows */
   --radius-tile: 20px;
   --radius-card: 24px;
   --radius-dialog: 26px;

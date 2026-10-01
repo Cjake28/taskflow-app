@@ -32,7 +32,7 @@ export function TaskCardList({
           return (
             <li
               key={task.id}
-              className="relative flex items-start gap-3 rounded-[18px] bg-card p-3.5 shadow-card transition-transform active:scale-[0.99]"
+              className="relative flex items-start gap-3 rounded-item bg-card p-3.5 shadow-card transition-transform active:scale-[0.99]"
             >
               <CompletionToggle
                 className="relative z-10 mt-0.5"
@@ -44,7 +44,7 @@ export function TaskCardList({
                 <Link
                   to={`/tasks/${task.id}`}
                   className={cn(
-                    'block truncate rounded-sm text-[14.5px] font-bold after:absolute after:inset-0 after:rounded-[18px]',
+                    'block truncate rounded-sm text-[14.5px] font-bold after:absolute after:inset-0 after:rounded-item',
                     done && 'text-muted-foreground line-through decoration-[1.5px]',
                   )}
                 >
@@ -75,7 +75,7 @@ export function TaskCardList({
           );
         })}
       </ul>
-      {footer ? <div className="rounded-[18px] bg-card shadow-card">{footer}</div> : null}
+      {footer ? <div className="rounded-item bg-card shadow-card">{footer}</div> : null}
     </div>
   );
 }
@@ -84,10 +84,7 @@ export function TaskCardListSkeleton({ count = 5 }: { count?: number }) {
   return (
     <div className="flex flex-col gap-3" aria-hidden="true">
       {Array.from({ length: count }, (_, index) => (
-        <div
-          key={index}
-          className="flex items-start gap-3 rounded-[18px] bg-card p-3.5 shadow-card"
-        >
+        <div key={index} className="flex items-start gap-3 rounded-item bg-card p-3.5 shadow-card">
           <Skeleton className="size-[22px] rounded-full" />
           <div className="flex-1">
             <Skeleton

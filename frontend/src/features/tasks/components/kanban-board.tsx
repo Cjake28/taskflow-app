@@ -161,7 +161,7 @@ function SortableCard({
       aria-label={`${task.title}, ${STATUS_META[status].label}`}
       data-card-id={task.id}
       className={cn(
-        'touch-manipulation rounded-[18px] outline-none focus-visible:ring-4 focus-visible:ring-ring/40',
+        'touch-manipulation rounded-item outline-none focus-visible:ring-4 focus-visible:ring-ring/40',
         isDragging ? 'cursor-grabbing' : 'cursor-grab',
       )}
     >
@@ -249,7 +249,7 @@ function Column({
                 />
               ))}
           {!state.isPending && tasks.length === 0 ? (
-            <p className="grid min-h-24 place-items-center rounded-[18px] px-4 text-center text-[12.5px] font-semibold text-muted-foreground">
+            <p className="grid min-h-24 place-items-center rounded-item px-4 text-center text-[12.5px] font-semibold text-muted-foreground">
               {status === 'COMPLETED' ? 'Finished tasks land here.' : 'No tasks here yet.'}
             </p>
           ) : null}

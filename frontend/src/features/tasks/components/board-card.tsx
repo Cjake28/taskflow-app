@@ -52,7 +52,7 @@ export function BoardCard({
   return (
     <article
       className={cn(
-        'relative flex flex-col gap-[9px] rounded-[18px] bg-card p-3.5 shadow-card',
+        'relative flex flex-col gap-[9px] rounded-item bg-card p-3.5 shadow-card',
         overlay && 'rotate-[2.5deg] cursor-grabbing shadow-pop outline-2 outline-primary',
         className,
       )}
@@ -84,7 +84,7 @@ export function BoardCard({
           <Link
             to={`/tasks/${task.id}`}
             draggable={false}
-            className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-[18px] hover:text-primary focus-visible:ring-4 focus-visible:ring-ring/30"
+            className="rounded-sm outline-none after:absolute after:inset-0 after:rounded-item hover:text-primary focus-visible:ring-4 focus-visible:ring-ring/30"
           >
             {task.title}
           </Link>
@@ -134,7 +134,7 @@ export function DropPlaceholder({
     return (
       <div
         aria-hidden="true"
-        className="rounded-[18px] outline-2 -outline-offset-2 outline-dashed outline-[color-mix(in_oklab,var(--muted-foreground)_40%,transparent)]"
+        className="rounded-item outline-2 -outline-offset-2 outline-dashed outline-[color-mix(in_oklab,var(--muted-foreground)_40%,transparent)]"
       >
         <BoardCard task={task} className="opacity-35 shadow-none" />
       </div>
@@ -147,7 +147,7 @@ export function DropPlaceholder({
   return (
     <div
       aria-hidden="true"
-      className="grid min-h-24 place-items-center rounded-[18px] border-2 border-dashed border-[color-mix(in_oklab,var(--tint)_60%,transparent)] bg-[color-mix(in_oklab,var(--tint)_8%,transparent)] px-3 text-center text-[12.5px] font-bold text-[color-mix(in_oklab,var(--tint)_85%,var(--foreground))]"
+      className="grid min-h-24 place-items-center rounded-item border-2 border-dashed border-[color-mix(in_oklab,var(--tint)_60%,transparent)] bg-[color-mix(in_oklab,var(--tint)_8%,transparent)] px-3 text-center text-[12.5px] font-bold text-[color-mix(in_oklab,var(--tint)_85%,var(--foreground))]"
     >
       {label}
     </div>
@@ -158,7 +158,7 @@ export function BoardCardSkeleton({ index = 0 }: { index?: number }) {
   return (
     <div
       aria-hidden="true"
-      className="flex flex-col gap-2.5 rounded-[18px] bg-card p-3.5 shadow-card"
+      className="flex flex-col gap-2.5 rounded-item bg-card p-3.5 shadow-card"
     >
       <Skeleton className="h-3.5 rounded-full" style={{ width: `${60 + ((index * 17) % 30)}%` }} />
       <Skeleton className="h-2.5 w-4/5 rounded-full" />

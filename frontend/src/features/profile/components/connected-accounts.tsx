@@ -28,7 +28,7 @@ import { profileTabHref } from '../lib/profile-tabs';
 import { ProfileCard } from './profile-card';
 import { ProviderLogo } from './provider-logo';
 
-const rowClass = 'flex flex-wrap items-center gap-x-3.5 gap-y-3 rounded-[18px] bg-fill p-4';
+const rowClass = 'flex flex-wrap items-center gap-x-3.5 gap-y-3 rounded-item bg-fill p-4';
 const logoClass =
   'grid size-[46px] shrink-0 place-items-center rounded-[14px] bg-card text-foreground shadow-card [&_svg]:size-[22px]';
 
@@ -204,7 +204,7 @@ export function ConnectedAccounts({ user }: { user: UserDto }) {
         {loading ? (
           <div aria-hidden="true" className="flex flex-col gap-3">
             {[0, 1].map((index) => (
-              <Skeleton key={index} className="h-[78px] rounded-[18px]" />
+              <Skeleton key={index} className="h-[78px] rounded-item" />
             ))}
           </div>
         ) : accounts.isError ? (
@@ -232,7 +232,7 @@ export function ConnectedAccounts({ user }: { user: UserDto }) {
               />
             ))}
             {visible.length === 0 ? (
-              <li className="flex items-start gap-3 rounded-[18px] border-[1.5px] border-dashed border-border p-4">
+              <li className="flex items-start gap-3 rounded-item border-[1.5px] border-dashed border-border p-4">
                 <span className="grid size-[46px] shrink-0 place-items-center rounded-[14px] bg-fill text-muted-foreground">
                   <PlugZap aria-hidden="true" className="size-[21px]" />
                 </span>
