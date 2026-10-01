@@ -1,0 +1,55 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "taskflow",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-30",
+
+  // The React app, built with `npm run build -w @taskflow/frontend`.
+  "assets": {
+    "directory": "../../frontend/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // The Worker sees every request first (www → apex redirect, /api, /__storage), then serves assets.
+    "run_worker_first": true,
+  },
+
+  // The API image (Dockerfile next to this file, built from the repository root).
+  "containers": [
+    {
+      "class_name": "TaskflowApi",
+      "image": "./Dockerfile",
+      "image_build_context": "../..",
+      "instance_type": "basic",
+      "max_instances": 1,
+      // Next to the Neon database (us-east-2).
+      "constraints": { "regions": ["ENAM"] },
+    },
+  ],
+  "durable_objects": {
+    "bindings": [{ "name": "API", "class_name": "TaskflowApi" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["TaskflowApi"] }],
+
+  // Every 5 minutes: keep the API container awake so reminders go out on time.
+  "triggers": { "crons": ["*/5 * * * *"] },
+
+  // Private image bucket; the container reaches it through /__storage on this Worker.
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "taskflow-images" }],
+
+  // Zone routes on the proxied DNS records of taskflow.boats: the Worker answers every request
+  // (www redirects to the apex). Custom domains would also work once those records are removed.
+  "routes": [
+    { "pattern": "taskflow.boats/*", "zone_name": "taskflow.boats" },
+    { "pattern": "www.taskflow.boats/*", "zone_name": "taskflow.boats" },
+  ],
+
+  // Non-secret settings. Secrets are set with `wrangler secret put` (see README.md here).
+  "vars": {
+    "FRONTEND_URL": "https://taskflow.boats",
+    "SMTP_HOST": "smtp.gmail.com",
+    "SMTP_PORT": "465",
+    "SMTP_SECURE": "true",
+  },
+
+  "observability": { "enabled": true },
+}

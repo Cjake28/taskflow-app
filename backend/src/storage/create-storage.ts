@@ -1,4 +1,5 @@
 import type { Env } from '../config/env';
+import { HttpStorageDriver } from './http.driver';
 import { LocalDiskDriver } from './local.driver';
 import { S3Driver } from './s3.driver';
 import type { StorageDriver } from './storage.driver';
@@ -24,6 +25,11 @@ export function createStorageDriver(env: Env): StorageDriver {
         endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
         accessKeyId: env.R2_ACCESS_KEY_ID,
         secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+      });
+    case 'http':
+      return new HttpStorageDriver({
+        baseUrl: env.STORAGE_HTTP_URL,
+        token: env.STORAGE_HTTP_TOKEN,
       });
     default:
       return new LocalDiskDriver(env.STORAGE_LOCAL_ROOT);

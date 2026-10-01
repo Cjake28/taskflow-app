@@ -10,7 +10,7 @@ export interface StoredObject {
  * (`images/<ownerId>/<imageId>.webp`), never taken from user input.
  */
 export interface StorageDriver {
-  readonly name: 'local' | 's3' | 'r2';
+  readonly name: 'local' | 's3' | 'r2' | 'http';
   put(key: string, body: Buffer, contentType: string): Promise<void>;
   /** Throws `StorageObjectNotFoundError` when the object does not exist. */
   getStream(key: string): Promise<Readable>;

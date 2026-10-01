@@ -4,6 +4,8 @@ TaskFlow is a full-stack task management system. Registered users manage their o
 
 It was built for a full-stack developer technical assessment. The required stack is React + TypeScript + React Router + Tailwind on the frontend, Node.js + Express + TypeScript on the backend, and PostgreSQL + Prisma for data.
 
+**Live demo: https://taskflow.boats**. Log in with `demo@taskflow.dev` / `Demo@12345!`, or register (the code is emailed). It runs on Cloudflare Workers and Containers with PostgreSQL on Neon; see [deploy/cloudflare](deploy/cloudflare/README.md).
+
 ![Dashboard](docs/screenshots/dashboard.webp)
 
 <table>
@@ -587,7 +589,7 @@ When they are unset, the buttons are hidden and everything else works.
 ## What I would improve
 
 - End-to-end browser tests (Playwright) in CI, plus visual regression tests for the main screens.
-- Deployment: a production Dockerfile, a managed PostgreSQL/Redis, R2 for images, and HTTPS with `COOKIE_SECURE=true`.
+- Deployment: build and deploy from CI on every merge (today the deploy to Cloudflare is run by hand), and move Redis to a managed instance so queued jobs survive a container restart.
 - Real-time updates across devices (WebSocket or SSE) and optimistic concurrency (ETags) for simultaneous edits.
 - Collaboration: shared projects, assignees and comments, which the ownership model would extend with membership checks.
 - Recurring tasks, push notifications (Web Push) and calendar export.

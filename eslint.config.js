@@ -14,6 +14,7 @@ export default defineConfig([
     '**/coverage/**',
     'backend/src/generated/**',
     'backend/storage/**',
+    '**/.wrangler/**',
   ]),
   js.configs.recommended,
   tseslint.configs.recommended,
