@@ -226,7 +226,7 @@ function TaskDetails({ task, onDeleted }: { task: TaskDetailsDto; onDeleted: () 
             <DueLabel task={task} sentence />
           </div>
         </div>
-        <div className="flex flex-wrap gap-2.5">
+        <div className="grid w-full grid-cols-2 gap-2.5 sm:flex sm:w-auto sm:flex-wrap [&>*:first-child]:col-span-2">
           {done ? (
             <Button variant="outline" onClick={() => toggle(task)}>
               <RotateCcw aria-hidden="true" />
