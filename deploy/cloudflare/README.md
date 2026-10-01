@@ -54,6 +54,8 @@ npx wrangler deploy --secrets-file secrets.json --containers-rollout immediate
 
 The non-secret settings (`FRONTEND_URL`, SMTP host and port) are `vars` in `wrangler.jsonc`.
 
+**Changing a secret later** (for example a new database password): put only that key in a JSON file and run `npx wrangler secret bulk <file>`. The API container restarts on its own with the new value within a few seconds, with no image build. Avoid piping a value into `wrangler secret put` from PowerShell: it adds a line ending that becomes part of the secret (an invalid `DATABASE_URL` makes the container exit at start-up).
+
 **Database:** the container applies pending migrations when it starts. To load the demo accounts, run the seed from a machine with the repository:
 
 ```bash
