@@ -114,19 +114,37 @@ It was built for a full-stack developer technical assessment. The required stack
 
 ## Quick start
 
+With **Node.js 24+** and **Docker Desktop running**, one command sets everything up and starts the app:
+
 ```bash
 git clone https://github.com/Cjake28/taskflow.git
 cd taskflow
-npm install                              # installs every workspace (shared, backend, frontend)
-
-cp backend/.env.example backend/.env     # then set JWT_ACCESS_SECRET (see below)
-docker compose up -d                     # PostgreSQL, Redis and Mailpit
-npm run db:migrate                       # creates the schema with Prisma migrations
-npm run db:seed                          # optional: demo accounts and tasks
-npm run dev                              # API on :4000 + web app on :5173
+npm run quickstart
 ```
 
-Open **http://localhost:5173** and log in with a [demo account](#demo-accounts) or register.
+Open **http://localhost:5173** and log in with `demo@taskflow.dev` / `Demo@12345!` (more in [Demo accounts](#demo-accounts)) or register.
+
+`npm run quickstart` runs the setup, then `npm run dev`. The setup ([`scripts/setup.mjs`](scripts/setup.mjs)):
+
+1. installs the dependencies of every workspace;
+2. creates `backend/.env` from `backend/.env.example` with a random `JWT_ACCESS_SECRET` (an existing `.env` is kept);
+3. starts PostgreSQL, Redis and Mailpit with `docker compose up -d --wait`;
+4. applies the Prisma migrations;
+5. loads the demo accounts.
+
+It stops with a hint when something is missing (Docker not running, a port already in use, the database unreachable) and is safe to run again.
+
+**Step by step** (the same thing):
+
+```bash
+npm install          # installs every workspace (shared, backend, frontend)
+npm run setup        # .env, Docker services, migrations, demo data
+npm run dev          # API on :4000 + web app on :5173
+```
+
+Next time, `npm run dev` is enough (with Docker running).
+
+**Without Docker:** install PostgreSQL 17 and Redis 7+ (see [Database setup](#database-setup-and-prisma-migrations)), copy `backend/.env.example` to `backend/.env` and set `DATABASE_URL`, `DATABASE_URL_TEST` and `REDIS_URL`, then run `npm run quickstart -- --no-docker`. Add `--no-seed` to skip the demo data.
 
 | URL                                 | What                                                     |
 | ----------------------------------- | -------------------------------------------------------- |
@@ -135,7 +153,7 @@ Open **http://localhost:5173** and log in with a [demo account](#demo-accounts) 
 | http://localhost:4000/api/v1/health | Health check (database, Redis, storage)                  |
 | http://localhost:8025               | Mailpit inbox (every email the app sends in development) |
 
-Generate a secret for `JWT_ACCESS_SECRET`:
+`npm run setup` generates `JWT_ACCESS_SECRET`. To make one yourself:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
@@ -197,7 +215,7 @@ Then point `DATABASE_URL` and `DATABASE_URL_TEST` at them. Redis must also be re
 
 ```bash
 npm run db:migrate                          # development: apply migrations (and create new ones after schema changes)
-npm run db:deploy -w @taskflow/backend      # production/CI: apply existing migrations only
+npm run db:deploy                           # production/CI: apply existing migrations only
 npm run db:seed                             # demo data (safe to re-run)
 npm run db:studio                           # browse the data in Prisma Studio
 npx prisma migrate reset -w @taskflow/backend   # drop, re-create, migrate and seed (destroys local data)
@@ -208,7 +226,7 @@ The Prisma client is generated into `backend/src/generated/prisma` automatically
 ## Running the backend
 
 ```bash
-npm run dev:backend      # tsx watch on http://localhost:4000 (API under /api/v1)
+npm run dev:backend      # node --watch (with tsx) on http://localhost:4000 (API under /api/v1)
 npm run worker           # only needed when RUN_WORKER_IN_API=false
 ```
 
@@ -561,6 +579,7 @@ When they are unset, the buttons are hidden and everything else works.
   - A per-minute tick reading the database replaced per-reminder delayed jobs, which go stale when a task is edited.
   - Atomic claims and de-duplication keys make retries safe.
   - An all-day task's reminders count back from 9:00 local time, using small `Intl`-based helpers tested across daylight-saving changes.
+- **A dev server that hung only on Windows.** Under `concurrently`, `tsx watch` never started the API on Windows: each process gets a stdin pipe that is never closed, and the watcher stalled on it. Node's own watch mode with the tsx loader (`node --watch --import tsx`) doesn't read stdin, so the backend now uses that. It was found by running the README from a fresh clone.
 - **Due dates across time zones.** An all-day task is stored as the end of that local day, so it only becomes overdue after the day ends. Dashboard windows ("due in the next 7 days") are rolling, so they are correct in any zone.
 
 ## What I would improve

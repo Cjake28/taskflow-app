@@ -28,7 +28,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.{ts,tsx,js}'],
+    files: ['**/*.{ts,tsx,js,mjs}'],
     ignores: browserSources,
     languageOptions: { globals: { ...globals.node } },
   },

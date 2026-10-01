@@ -11,6 +11,8 @@
     "frontend"
   ],
   "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "quickstart": "node scripts/setup.mjs --start",
     "dev": "concurrently --names api,web --prefix-colors cyan,magenta --kill-others-on-fail \"npm:dev:backend\" \"npm:dev:frontend\"",
     "dev:backend": "npm run dev -w @taskflow/backend",
     "dev:frontend": "npm run dev -w @taskflow/frontend",
@@ -21,6 +23,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "npm run db:migrate -w @taskflow/backend",
+    "db:deploy": "npm run db:deploy -w @taskflow/backend",
     "db:studio": "npm run db:studio -w @taskflow/backend",
     "db:seed": "npm run db:seed -w @taskflow/backend",
     "worker": "npm run worker -w @taskflow/backend"
