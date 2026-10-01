@@ -1,4 +1,4 @@
-export const PROFILE_TABS = ['account', 'security', 'connected'] as const;
+export const PROFILE_TABS = ['account', 'security', 'notifications', 'connected'] as const;
 export type ProfileTab = (typeof PROFILE_TABS)[number];
 
 /** `?tab=` value → a known tab (anything else falls back to Account). */

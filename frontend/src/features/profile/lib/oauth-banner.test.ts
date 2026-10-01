@@ -76,6 +76,7 @@ describe('parseProfileTab', () => {
   it('falls back to Account for unknown values', () => {
     expect(parseProfileTab('security')).toBe('security');
     expect(parseProfileTab('connected')).toBe('connected');
+    expect(parseProfileTab('notifications')).toBe('notifications');
     expect(parseProfileTab('billing')).toBe('account');
     expect(parseProfileTab(null)).toBe('account');
   });
