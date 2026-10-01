@@ -8,12 +8,23 @@ The spec covers several subsystems (backend API, background jobs, file storage, 
 
 | # | Plan | Spec phases (§21) | Deliverable | File | Status |
 |---|---|---|---|---|---|
-| 1 | Foundation and authentication API | 0, 1, 2 | Monorepo, Docker services, shared package, backend foundation, register / login / refresh / logout / logout-all / `GET /users/me`, rate limiting, origin checks — all covered by tests | — | Ready |
-| 2 | Jobs, email, password reset and account API | 3, 4 | Jobs module (email/media/maintenance queues, worker), Mailpit email, forgot / verify / reset password, profile update, change/set password, sessions list/revoke, `auth.cleanup` | `plans/02-jobs-email-and-account.md` | Written when Plan 1 is merged |
-| 3 | Tasks, images and dashboard API | 5, 6, 7 | Task CRUD / list / move / activity, storage drivers (local, S3, R2), sharp pipeline, task images and avatars, retention and orphan-sweep jobs, dashboard stats, activity feed | `plans/03-tasks-images-and-dashboard.md` | Written when Plan 2 is merged |
-| 4 | Frontend foundation and auth screens | 8, 9 | Vite + React 19 + Tailwind 4 tokens + shadcn, router, API client with single-flight refresh, token scheduler, auth context and guards, layouts, login / register / forgot / reset screens | `plans/04-frontend-foundation-and-auth.md` | Written when Plan 3 is merged |
-| 5 | Application screens | 10–15 | Dashboard, tasks list / board / details / dialog, images UI, profile, states, dark mode, hotkeys, responsive and accessibility passes | `plans/05-application-screens.md` | Written when Plan 4 is merged |
-| 6 | OAuth and finish | 16, 17 | Google and GitHub sign-in, account linking, avatar import, seed data with images, Swagger, CI, README completion | `plans/06-oauth-and-finish.md` | Written when Plan 5 is merged |
+| 1 | Foundation and authentication API | 0, 1, 2 | Monorepo, Docker services, shared package, backend foundation, register / login / refresh / logout / logout-all / `GET /users/me`, rate limiting, origin checks — all covered by tests | — | Done |
+| 2 | Jobs, email, password reset and account API | 3, 4 | Jobs module (email/media/maintenance queues, worker), Mailpit email, forgot / verify / reset password, profile update, change/set password, sessions list/revoke, `auth.cleanup` | — | Done (PRs #3–#5) |
+| 3 | Tasks, images and dashboard API | 5, 6, 7 | Task CRUD / list / move / activity, storage drivers (local, S3, R2), sharp pipeline, task images and avatars, retention and orphan-sweep jobs, dashboard stats, activity feed | — | Done (PRs #6–#9) |
+| 4 | Frontend foundation and auth screens | 8, 9 | Vite + React 19 + Tailwind 4 tokens + shadcn, router, API client with single-flight refresh, token scheduler, auth context and guards, layouts, login / register / forgot / reset screens | — | Done (PRs #10, #12) |
+| 5 | Application screens | 10–15 | Dashboard, tasks list / board / details / dialog, images UI, profile, states, dark mode, hotkeys, responsive and accessibility passes | — | Done (PRs #17, #20, #22) |
+| 6 | OAuth and finish | 16, 17 | Google and GitHub sign-in, account linking, avatar import, seed data with images, Swagger, CI, README completion | — | Done (PRs #11, #13–#16, #21, #23); CI workflow and Docker app image pending (see below) |
+
+## How it was actually executed
+
+Plans 2–6 were not written up as separate documents: after Plan 1, the remaining phases were implemented directly from the spec, each phase on its own branch and pull request with tests. Two parts of the frontend (Tasks; Dashboard and Profile) were built in parallel on separate branches against shared contracts merged first (`lib/query-keys.ts`, `lib/due-date.ts`, `lib/activity.ts`).
+
+Changes from the original plan:
+
+- **Email verification** (a bonus in the assessment) was added: confirmation link after registration and after an email change, soft enforcement with a reminder banner.
+- **OAuth library:** `arctic` was replaced by a small in-house PKCE client after npm deprecated it; Google ID tokens are now verified with `jose`.
+- **S3 testing** uses SeaweedFS instead of MinIO (MinIO images are no longer published).
+- **Pending:** the GitHub Actions workflow (`ci/github-actions` branch) needs a GitHub token with the `workflow` scope to be pushed. The full-app Docker images (draft PR #19) built successfully but were not run end to end before the local Docker installation failed.
 
 ## Research to redo before writing each later plan
 
