@@ -33,6 +33,9 @@ interface Env {
 /** One always-on instance: the API, its background workers and a private Redis. */
 const INSTANCE = 'main';
 
+/** Storage key for the hash of the settings the running container was started with. */
+const SETTINGS_KEY = 'settingsFingerprint';
+
 /**
  * The database (Neon) is in us-east-2, so the API lives next to it in Eastern North America:
  * one trip across the ocean per request instead of one per query.
@@ -79,6 +82,25 @@ export class TaskflowApi extends Container<Env> {
       GITHUB_CLIENT_ID: optional(env.GITHUB_CLIENT_ID),
       GITHUB_CLIENT_SECRET: optional(env.GITHUB_CLIENT_SECRET),
     };
+    const [ctx] = args;
+    ctx.blockConcurrencyWhile(() => this.restartIfSettingsChanged(ctx));
+  }
+
+  /**
+   * A running container keeps the settings it was started with, even after a deploy or
+   * `wrangler secret put` (only this Durable Object restarts). Compare a hash of the settings
+   * with the one the container was started with and restart it when they differ, so new secrets
+   * apply on their own.
+   */
+  private async restartIfSettingsChanged(ctx: DurableObjectState): Promise<void> {
+    const bytes = new TextEncoder().encode(JSON.stringify(this.envVars));
+    const digest = await crypto.subtle.digest('SHA-256', bytes);
+    const fingerprint = [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+    if ((await ctx.storage.get<string>(SETTINGS_KEY)) === fingerprint) return;
+    if (ctx.container?.running) await this.destroy();
+    await ctx.storage.put(SETTINGS_KEY, fingerprint);
   }
 }
 
