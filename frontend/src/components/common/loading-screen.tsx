@@ -32,7 +32,7 @@ export function LoadingScreen({
       <LogoMark size="lg" className="animate-logo-pulse" />
       <p className="text-xl font-extrabold tracking-tight">TaskFlow</p>
       <div className="h-[5px] w-[140px] overflow-hidden rounded-full bg-fill" aria-hidden="true">
-        <span className="block h-full w-2/5 animate-loadbar rounded-full bg-[linear-gradient(90deg,var(--primary),var(--primary-2))]" />
+        <span className="block h-full w-2/5 animate-loadbar rounded-full bg-primary" />
       </div>
       <p className="text-[13px] text-muted-foreground">{label}</p>
     </div>

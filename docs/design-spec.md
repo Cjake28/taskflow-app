@@ -1504,7 +1504,7 @@ No Redux or Zustand: once server state lives in TanStack Query there is almost n
 
 ### 15.1 Direction
 
-**"Soft Pastel+"** — a lavender-grey canvas with floating white cards, generous radii, pastel status tints, and colour delivered through solid accents (solid icon circles, gradient primary actions, a solid "current" item in timelines). Friendly and modern while staying calm and readable.
+**"Soft Pastel+"** — a lavender-grey canvas with flat white cards, generous radii, pastel status tints, and colour delivered through solid accents (solid icon circles, solid primary actions, a solid "current" item in timelines). No gradients, coloured glows or decorative sparkles: surfaces are flat and separated by a hairline, so the UI stays calm and readable.
 
 ### 15.2 Token architecture
 
@@ -1528,7 +1528,7 @@ Components reference **semantic tokens only**. Dark mode redefines the semantic 
 | `--foreground` | `#1B1C3A` | `#EDEEFA` | Text (navy, not black) |
 | `--muted-foreground` | `#858AA6` | `#9093B2` | Secondary text |
 | `--primary` | `#5B5BF0` | `#7C7CF8` | Primary actions, highlights |
-| `--primary-2` | `#8B5CF6` | `#A07CF8` | Gradient end for primary actions |
+| `--primary-2` | `#8B5CF6` | `#A07CF8` | Violet accent (the "edited" activity tint) |
 | `--status-todo` | `#5B5BF0` | `#8385F8` | To Do |
 | `--status-progress` | `#F28B22` | `#F89B45` | In Progress |
 | `--status-done` | `#14B87F` | `#34CD95` | Completed |
@@ -1559,7 +1559,7 @@ One formula works in both themes because the tint mixes with whatever the card c
 | Font | **Plus Jakarta Sans** (variable, self-hosted); headings 700–800, body 500; `tabular-nums` for figures |
 | Scale | Display 30 / H1 28 / H2 22 / H3 16–18 / body 14–15 / small 12–13 |
 | Radius | Cards 24 px · tiles 20 px · inputs 14 px · image thumbnails 16 px · buttons and chips fully rounded |
-| Shadows | `--shadow-card`: soft, navy-tinted · `--shadow-glow`: coloured, only on primary actions and hero surfaces · `--shadow-pop`: dialogs and sheets |
+| Elevation | `--shadow-card`: a 1 px hairline (no blur) around cards and controls · `--shadow-pop`: real elevation, only for floating layers (dialogs, menus, sheets, toasts, a dragged card) |
 | Motion | 150–200 ms transitions, dialog fade/zoom (`tw-animate-css`), skeleton shimmer; all disabled under `prefers-reduced-motion` |
 
 ### 15.6 Icons and imagery
@@ -1568,8 +1568,8 @@ One formula works in both themes because the tint mixes with whatever the card c
 |---|---|
 | UI icons | `lucide-react` |
 | Status icons | Lucide icon in a solid colour circle (To Do `ClipboardList`, In Progress `Timer`, Completed `ClipboardCheck`, Overdue `TriangleAlert`) |
-| Empty/error/success illustrations | **Icon compositions** — layered tinted circles, a solid core with a Lucide icon, optional sparkles. Token-driven, dark-mode ready, no external assets. |
-| Auth brand panel | Primary gradient with floating mini UI cards (task card, stat, progress) built from the same components |
+| Empty/error/success illustrations | **Icon compositions** — layered tinted circles, a solid core with a Lucide icon. Token-driven, dark-mode ready, no external assets. |
+| Auth brand panel | Solid primary panel with floating mini UI cards (task card, stat, progress) built from the same components |
 | Avatars | Uploaded or imported avatar (served by our API) → DiceBear (generated locally from the user ID) → initials |
 
 ### 15.7 Reference mockups

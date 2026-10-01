@@ -214,7 +214,7 @@ export function VerifySignupPage() {
     <AuthLayout
       heading="One last step."
       text="Confirming your email keeps your account yours, and makes sure password reset links reach you."
-      visual={<IconArt icon={MailCheck} size="lg" onBrand sparkles />}
+      visual={<IconArt icon={MailCheck} size="lg" onBrand />}
       visualPlacement="center"
     >
       <title>Confirm your email · TaskFlow</title>

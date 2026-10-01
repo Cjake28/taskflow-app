@@ -66,7 +66,7 @@ export function WeekStrip({
             className={cn(
               'flex cursor-pointer flex-col items-center gap-1.5 rounded-[18px] pt-2.5 pb-[9px] text-xs font-semibold transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:rounded-tile',
               selected
-                ? 'bg-primary text-white/85 shadow-glow'
+                ? 'bg-primary text-white/85'
                 : day.isToday
                   ? '[--tint:var(--primary)] bg-tint-faint text-primary hover:bg-tint-soft'
                   : 'text-muted-foreground hover:bg-fill hover:text-foreground',

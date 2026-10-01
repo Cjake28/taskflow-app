@@ -41,7 +41,7 @@ export function FirstRun() {
       />
 
       <div className="mx-auto flex max-w-[520px] flex-col items-center text-center">
-        <IconArt icon={ClipboardList} sparkles className="mb-6" />
+        <IconArt icon={ClipboardList} className="mb-6" />
         <h2
           id="first-run-title"
           className="text-[22px] leading-tight font-extrabold tracking-[-0.02em] sm:text-[26px]"
@@ -83,7 +83,7 @@ export function FirstRun() {
           >
             <span
               aria-hidden="true"
-              className="grid size-10 shrink-0 place-items-center rounded-full bg-(--tint) text-card shadow-[0_10px_18px_-10px_var(--tint)]"
+              className="grid size-10 shrink-0 place-items-center rounded-full bg-(--tint) text-card"
             >
               <Icon className="size-[18px]" strokeWidth={2.2} />
             </span>

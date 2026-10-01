@@ -213,7 +213,7 @@ function Column({
         <span
           aria-hidden="true"
           className={cn(
-            'grid size-[30px] shrink-0 place-items-center rounded-full bg-(--tint) shadow-[0_8px_14px_-8px_var(--tint)]',
+            'grid size-[30px] shrink-0 place-items-center rounded-full bg-(--tint)',
             status === 'IN_PROGRESS' ? 'text-on-progress' : 'text-white',
           )}
         >

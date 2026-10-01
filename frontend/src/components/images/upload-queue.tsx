@@ -122,9 +122,7 @@ function QueueRow({
             <span
               className={cn(
                 'block h-full rounded-full transition-[width] duration-200 ease-out',
-                item.status === 'done'
-                  ? 'bg-status-done'
-                  : 'bg-[linear-gradient(90deg,var(--primary),var(--primary-2))]',
+                item.status === 'done' ? 'bg-status-done' : 'bg-primary',
                 item.status === 'processing' && 'animate-pulse',
                 indeterminate && 'w-2/5 animate-loadbar',
               )}

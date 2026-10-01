@@ -19,7 +19,7 @@ interface TileSpec {
   value: (stats: DashboardStats) => number;
   /** Phones show the three status tiles; Total and Overdue appear from `sm` up. */
   phone: boolean;
-  /** Lighter pastel for neutral tints, which otherwise read as grey. */
+  /** Neutral tints read as grey at full pastel strength, so they get a fainter fill. */
   neutral?: boolean;
 }
 
@@ -85,19 +85,15 @@ export function StatTiles({ stats }: { stats: DashboardStats }) {
                 to={statTileHref(tile.kind)}
                 style={{ '--tint': tile.tint } as CSSProperties}
                 className={cn(
-                  'group relative isolate flex h-full flex-col items-center gap-2 overflow-hidden rounded-[22px] bg-tint-pastel px-1.5 pt-3.5 pb-3 text-center shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--tint)_16%,transparent),var(--shadow-card)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--tint)_24%,transparent),var(--shadow-card),0_18px_30px_-20px_var(--tint)] focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:rounded-tile sm:p-4 sm:text-left xl:p-[18px]',
-                  tile.neutral && '[--pastel-from:10%] [--pastel-to:4%]',
+                  'group relative flex h-full flex-col items-center gap-2 rounded-[22px] px-1.5 pt-3.5 pb-3 text-center transition-colors duration-150 focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:rounded-tile sm:p-4 sm:text-left xl:p-[18px]',
+                  tile.neutral
+                    ? 'bg-tint-faint hover:bg-tint-soft'
+                    : 'bg-tint-soft hover:bg-tint-strong',
                 )}
               >
-                {/* Oversized icon as a watermark in the corner (larger screens). */}
-                <Icon
-                  aria-hidden="true"
-                  strokeWidth={1.6}
-                  className="absolute -right-4 -bottom-5 -z-10 hidden size-[104px] -rotate-12 text-(--tint) opacity-[0.09] transition-transform duration-300 group-hover:-rotate-6 sm:block"
-                />
                 <span
                   aria-hidden="true"
-                  className="grid size-11 place-items-center rounded-full bg-(--tint) text-card shadow-[0_10px_18px_-10px_var(--tint)] sm:size-[46px]"
+                  className="grid size-11 place-items-center rounded-full bg-(--tint) text-card sm:size-[46px]"
                 >
                   <Icon className="size-5" strokeWidth={2.1} />
                 </span>

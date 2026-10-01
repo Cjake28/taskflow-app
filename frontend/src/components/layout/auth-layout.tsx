@@ -18,7 +18,7 @@ export interface AuthLayoutProps {
 }
 
 /**
- * Split auth layout (spec §15.6, §16): gradient brand panel with floating UI cards on the left,
+ * Split auth layout (spec §15.6, §16): brand panel with floating UI cards on the left,
  * the form on the right. The brand panel is hidden on small screens.
  */
 export function AuthLayout({
@@ -32,11 +32,8 @@ export function AuthLayout({
     <div className="min-h-dvh bg-background lg:grid lg:grid-cols-[1.05fr_1fr]">
       <aside
         aria-hidden="true"
-        className="relative m-4 hidden flex-col overflow-hidden rounded-[28px] bg-[linear-gradient(150deg,var(--primary),var(--primary-2))] px-10 py-9 text-white lg:sticky lg:top-4 lg:flex lg:h-[calc(100dvh-2rem)] lg:min-h-[620px]"
+        className="relative m-4 hidden flex-col overflow-hidden rounded-[28px] bg-primary px-10 py-9 text-white lg:sticky lg:top-4 lg:flex lg:h-[calc(100dvh-2rem)] lg:min-h-[620px]"
       >
-        <span className="pointer-events-none absolute -top-[140px] -right-[160px] size-[420px] rounded-full bg-white/8" />
-        <span className="pointer-events-none absolute -bottom-[110px] -left-[90px] size-[260px] rounded-full bg-white/8" />
-
         <Logo onBrand className="relative z-10" />
 
         {visualPlacement === 'center' ? (

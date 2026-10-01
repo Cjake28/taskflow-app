@@ -98,7 +98,7 @@ export function MobileTabBar({ className }: { className?: string }) {
       <Link
         to="/tasks?new=1"
         aria-label="New task"
-        className="-mt-[26px] grid size-[54px] place-items-center rounded-full bg-brand-gradient text-white shadow-glow transition-transform active:scale-95"
+        className="-mt-[26px] grid size-[54px] place-items-center rounded-full bg-primary text-white transition-transform active:scale-95"
       >
         <Plus aria-hidden="true" className="size-6" strokeWidth={2.4} />
       </Link>

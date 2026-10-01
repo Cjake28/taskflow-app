@@ -44,7 +44,7 @@ function TimelineItem({ entry }: { entry: TimelineEntry }) {
         className={cn(
           'block rounded-tile px-4 py-3.5 transition-[background-color,transform] duration-200 hover:-translate-y-px focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none',
           next
-            ? 'bg-(--tint) text-(--on-tint) shadow-[0_16px_30px_-18px_var(--tint)] [&_[data-priority]]:text-[color-mix(in_oklab,var(--on-tint)_80%,transparent)]'
+            ? 'bg-(--tint) text-(--on-tint) [&_[data-priority]]:text-[color-mix(in_oklab,var(--on-tint)_80%,transparent)]'
             : 'bg-tint-soft hover:bg-tint-strong',
         )}
       >

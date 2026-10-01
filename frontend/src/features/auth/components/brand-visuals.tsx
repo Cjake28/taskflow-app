@@ -15,7 +15,7 @@ function FloatCard({ className, children }: { className?: string; children: Reac
   return (
     <div
       className={cn(
-        'surface-light absolute rounded-[18px] bg-card px-4 py-3.5 text-[13px] text-foreground shadow-[0_24px_40px_-18px_rgb(10_10_40/0.45)]',
+        'surface-light absolute rounded-[18px] bg-card px-4 py-3.5 text-[13px] text-foreground',
         className,
       )}
     >
@@ -37,7 +37,7 @@ function StatCard({
 }) {
   return (
     <div className="flex items-center gap-3" style={{ '--tint': tint } as CSSProperties}>
-      <span className="grid size-10 place-items-center rounded-full bg-(--tint) text-white shadow-[0_10px_18px_-10px_var(--tint)]">
+      <span className="grid size-10 place-items-center rounded-full bg-(--tint) text-white">
         <Icon className="size-[18px]" />
       </span>
       <div>
@@ -64,7 +64,7 @@ export function LoginFloats() {
       <FloatCard className="top-[176px] left-[70px] w-[250px]">
         <p className="mb-2 text-sm font-bold">Completion rate · 42%</p>
         <div className="h-2 overflow-hidden rounded-full bg-fill">
-          <span className="block h-full w-[42%] rounded-full bg-[linear-gradient(90deg,var(--primary),var(--primary-2))]" />
+          <span className="block h-full w-[42%] rounded-full bg-primary" />
         </div>
       </FloatCard>
     </>

@@ -126,11 +126,7 @@ export function AvatarUploader({ user }: { user: UserDto }) {
               dragging && 'ring-4 ring-primary/40',
             )}
           >
-            <Avatar
-              user={user}
-              size="xl"
-              className="shadow-[0_16px_28px_-14px_color-mix(in_oklab,var(--status-progress)_80%,transparent)]"
-            />
+            <Avatar user={user} size="xl" />
             <span
               aria-hidden="true"
               className="absolute -right-1.5 -bottom-1.5 grid size-9 place-items-center rounded-full bg-card text-foreground shadow-pop ring-4 ring-background transition-colors group-hover:text-primary"

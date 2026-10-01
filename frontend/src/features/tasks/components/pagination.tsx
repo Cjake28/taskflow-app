@@ -76,7 +76,7 @@ export function Pagination({
                   className={cn(
                     pageButton,
                     item === page
-                      ? 'bg-brand-gradient text-white shadow-glow'
+                      ? 'bg-primary text-white'
                       : 'bg-fill text-foreground hover:bg-border',
                   )}
                 >

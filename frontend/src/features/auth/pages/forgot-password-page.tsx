@@ -82,7 +82,7 @@ export function ForgotPasswordPage() {
     <AuthLayout
       heading="Locked out? It happens."
       text="We'll email you a secure link to set a new password. It works once and expires in 30 minutes."
-      visual={<IconArt icon={Mail} size="lg" onBrand sparkles />}
+      visual={<IconArt icon={Mail} size="lg" onBrand />}
       visualPlacement="center"
     >
       <title>Forgot password · TaskFlow</title>

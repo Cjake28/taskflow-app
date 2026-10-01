@@ -99,8 +99,8 @@
   --soft-strong: 24%;
 
   /* Elevation */
-  --shadow-card: 0 1px 2px rgb(27 28 58 / 0.04), 0 12px 32px -18px rgb(27 28 58 / 0.2);
-  --shadow-glow: 0 16px 30px -12px rgb(91 91 240 / 0.55);
+  /* A hairline, not a drop shadow: surfaces stay flat. */
+  --shadow-card: 0 0 0 1px rgb(27 28 58 / 0.07);
   --shadow-pop: 0 30px 60px -20px rgb(20 20 50 / 0.35);
   --scrim: rgb(20 21 45 / 0.42);
 
@@ -150,8 +150,7 @@
   --soft: 18%;
   --soft-strong: 28%;
 
-  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.04), 0 14px 34px -18px rgb(0 0 0 / 0.7);
-  --shadow-glow: 0 16px 30px -14px rgb(124 124 248 / 0.5);
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06);
   --shadow-pop: 0 30px 60px -20px rgb(0 0 0 / 0.8);
   --scrim: rgb(4 4 12 / 0.6);
 
@@ -230,16 +229,8 @@
 @utility shadow-card {
   box-shadow: var(--shadow-card);
 }
-@utility shadow-glow {
-  box-shadow: var(--shadow-glow);
-}
 @utility shadow-pop {
   box-shadow: var(--shadow-pop);
-}
-
-/* Primary gradient used by primary actions, the logo mark and hero surfaces. */
-@utility bg-brand-gradient {
-  background-image: linear-gradient(135deg, var(--primary), var(--primary-2));
 }
 
 /*
@@ -255,19 +246,6 @@
 }
 @utility bg-tint-strong {
   background-color: color-mix(in oklab, var(--tint) var(--soft-strong), var(--card));
-}
-/*
- * A whole surface in the tint's pastel: a touch deeper at the top-left, fading out.
- * Neutral tints (e.g. the foreground) read as grey, so they can lighten it with
- * --pastel-from / --pastel-to.
- */
-@utility bg-tint-pastel {
-  background-color: color-mix(in oklab, var(--tint) var(--soft), var(--card));
-  background-image: linear-gradient(
-    150deg,
-    color-mix(in oklab, var(--tint) var(--pastel-from, var(--soft-strong)), var(--card)),
-    color-mix(in oklab, var(--tint) var(--pastel-to, 9%), var(--card))
-  );
 }
 @utility text-tint {
   color: color-mix(in oklab, var(--tint) 80%, var(--foreground));
