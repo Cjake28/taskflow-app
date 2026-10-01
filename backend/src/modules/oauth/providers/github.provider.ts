@@ -1,5 +1,5 @@
-import { CodeChallengeMethod, OAuth2Client } from 'arctic';
 import { z } from 'zod';
+import { authorizationUrl, exchangeAuthorizationCode } from './oauth2';
 import { splitFullName, type NormalizedProfile, type OAuthProvider } from './oauth-provider';
 
 const AUTHORIZATION_ENDPOINT = 'https://github.com/login/oauth/authorize';
@@ -17,36 +17,39 @@ const emailsSchema = z.array(
   z.object({ email: z.string(), primary: z.boolean(), verified: z.boolean() }),
 );
 
-/**
- * GitHub OAuth App. Arctic's generic client is used so the flow can include
- * PKCE, which GitHub supports for OAuth Apps.
- */
+/** GitHub OAuth App: Authorization Code flow with PKCE, then the REST API for the profile. */
 export class GitHubProvider implements OAuthProvider {
   readonly id = 'github' as const;
-  private readonly client: OAuth2Client;
 
   constructor(
-    clientId: string,
-    clientSecret: string,
-    redirectUri: string,
+    private readonly clientId: string,
+    private readonly clientSecret: string,
+    private readonly redirectUri: string,
     private readonly fetchImpl: typeof fetch = fetch,
-  ) {
-    this.client = new OAuth2Client(clientId, clientSecret, redirectUri);
-  }
+  ) {}
 
   createAuthorizationUrl(state: string, codeVerifier: string): URL {
-    return this.client.createAuthorizationURLWithPKCE(
-      AUTHORIZATION_ENDPOINT,
+    return authorizationUrl(AUTHORIZATION_ENDPOINT, {
+      clientId: this.clientId,
+      redirectUri: this.redirectUri,
+      scopes: ['read:user', 'user:email'],
       state,
-      CodeChallengeMethod.S256,
       codeVerifier,
-      ['read:user', 'user:email'],
-    );
+    });
   }
 
   async exchangeCode(code: string, codeVerifier: string): Promise<NormalizedProfile> {
-    const tokens = await this.client.validateAuthorizationCode(TOKEN_ENDPOINT, code, codeVerifier);
-    const accessToken = tokens.accessToken();
+    const { access_token: accessToken } = await exchangeAuthorizationCode(
+      TOKEN_ENDPOINT,
+      {
+        clientId: this.clientId,
+        clientSecret: this.clientSecret,
+        redirectUri: this.redirectUri,
+        code,
+        codeVerifier,
+      },
+      this.fetchImpl,
+    );
     const [user, emails] = await Promise.all([
       this.get(`${API}/user`, accessToken).then((body) => userSchema.parse(body)),
       // `/user` returns null for private emails, so read the verified primary address here.
