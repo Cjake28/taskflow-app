@@ -19,6 +19,8 @@ interface TileSpec {
   value: (stats: DashboardStats) => number;
   /** Phones show the three status tiles; Total and Overdue appear from `sm` up. */
   phone: boolean;
+  /** Lighter pastel for neutral tints, which otherwise read as grey. */
+  neutral?: boolean;
 }
 
 const TILES: TileSpec[] = [
@@ -29,6 +31,7 @@ const TILES: TileSpec[] = [
     tint: 'var(--foreground)',
     value: (stats) => stats.total,
     phone: false,
+    neutral: true,
   },
   {
     kind: 'TODO',
@@ -81,8 +84,17 @@ export function StatTiles({ stats }: { stats: DashboardStats }) {
               <Link
                 to={statTileHref(tile.kind)}
                 style={{ '--tint': tile.tint } as CSSProperties}
-                className="group relative flex h-full flex-col items-center gap-2 rounded-[22px] bg-card px-1.5 pt-3.5 pb-3 text-center shadow-card transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card),0_18px_30px_-22px_var(--tint)] focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:rounded-tile sm:p-4 sm:text-left xl:p-[18px]"
+                className={cn(
+                  'group relative isolate flex h-full flex-col items-center gap-2 overflow-hidden rounded-[22px] bg-tint-pastel px-1.5 pt-3.5 pb-3 text-center shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--tint)_16%,transparent),var(--shadow-card)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--tint)_24%,transparent),var(--shadow-card),0_18px_30px_-20px_var(--tint)] focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none sm:items-start sm:gap-3.5 sm:rounded-tile sm:p-4 sm:text-left xl:p-[18px]',
+                  tile.neutral && '[--pastel-from:10%] [--pastel-to:4%]',
+                )}
               >
+                {/* Oversized icon as a watermark in the corner (larger screens). */}
+                <Icon
+                  aria-hidden="true"
+                  strokeWidth={1.6}
+                  className="absolute -right-4 -bottom-5 -z-10 hidden size-[104px] -rotate-12 text-(--tint) opacity-[0.09] transition-transform duration-300 group-hover:-rotate-6 sm:block"
+                />
                 <span
                   aria-hidden="true"
                   className="grid size-11 place-items-center rounded-full bg-(--tint) text-card shadow-[0_10px_18px_-10px_var(--tint)] sm:size-[46px]"
@@ -93,12 +105,14 @@ export function StatTiles({ stats }: { stats: DashboardStats }) {
                   <span
                     className={cn(
                       'text-[19px] leading-none font-extrabold tracking-[-0.02em] tabular-nums sm:text-[28px] xl:text-[30px]',
-                      alarming && 'text-danger',
+                      alarming
+                        ? 'text-danger'
+                        : 'text-[color-mix(in_oklab,var(--tint)_22%,var(--foreground))]',
                     )}
                   >
                     {value}
                   </span>
-                  <span className="mt-1.5 text-xs font-semibold text-muted-foreground sm:mt-[5px] sm:text-[13px]">
+                  <span className="mt-1.5 text-xs font-semibold text-[color-mix(in_oklab,var(--tint)_45%,var(--foreground))] opacity-80 sm:mt-[5px] sm:text-[13px]">
                     {tile.shortLabel ? (
                       <>
                         <span className="sm:hidden">{tile.shortLabel}</span>
@@ -111,7 +125,7 @@ export function StatTiles({ stats }: { stats: DashboardStats }) {
                 </span>
                 <ChevronRight
                   aria-hidden="true"
-                  className="absolute top-[18px] right-3 hidden size-[18px] text-muted-foreground opacity-55 transition-transform group-hover:translate-x-0.5 group-hover:opacity-90 sm:block"
+                  className="absolute top-[18px] right-3 hidden size-[18px] text-[color-mix(in_oklab,var(--tint)_60%,var(--foreground))] opacity-50 transition-transform group-hover:translate-x-0.5 group-hover:opacity-90 sm:block"
                 />
               </Link>
             </li>

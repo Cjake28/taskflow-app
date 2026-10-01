@@ -256,6 +256,19 @@
 @utility bg-tint-strong {
   background-color: color-mix(in oklab, var(--tint) var(--soft-strong), var(--card));
 }
+/*
+ * A whole surface in the tint's pastel: a touch deeper at the top-left, fading out.
+ * Neutral tints (e.g. the foreground) read as grey, so they can lighten it with
+ * --pastel-from / --pastel-to.
+ */
+@utility bg-tint-pastel {
+  background-color: color-mix(in oklab, var(--tint) var(--soft), var(--card));
+  background-image: linear-gradient(
+    150deg,
+    color-mix(in oklab, var(--tint) var(--pastel-from, var(--soft-strong)), var(--card)),
+    color-mix(in oklab, var(--tint) var(--pastel-to, 9%), var(--card))
+  );
+}
 @utility text-tint {
   color: color-mix(in oklab, var(--tint) 80%, var(--foreground));
 }
