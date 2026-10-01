@@ -55,7 +55,7 @@ It was built for a full-stack developer technical assessment. The required stack
   - a reset signs out every device.
 - Log out, log out of all devices, and a list of active sessions (browser and OS) with revoke.
 - **Bonus:**
-  - email confirmation: the sign-up code, and a confirmation link after an email change;
+  - email confirmation with 6-digit codes: at sign-up, and when changing the email (the new address must confirm before the change happens);
   - change or set your password while logged in;
   - Google and GitHub sign-in with explicit account linking;
   - rate limiting and brute-force protection.
@@ -144,7 +144,7 @@ The backend validates its configuration with Zod at startup and refuses to start
 | `ACCESS_TOKEN_TTL_MINUTES`                                                                                        | no               | `15`                       | Access token lifetime                                                                       |
 | `REFRESH_TOKEN_TTL_DAYS` / `REFRESH_TOKEN_REMEMBER_TTL_DAYS`                                                      | no               | `7` / `30`                 | Refresh session lifetime without / with "Remember me"                                       |
 | `PASSWORD_RESET_TTL_MINUTES`                                                                                      | no               | `30`                       | Reset link lifetime                                                                         |
-| `EMAIL_VERIFICATION_TTL_HOURS`                                                                                    | no               | `24`                       | Email confirmation link lifetime                                                            |
+| `OTP_TTL_MINUTES`                                                                                                 | no               | `10`                       | Lifetime of emailed 6-digit codes (sign-up and email change)                                |
 | `COOKIE_SECURE`                                                                                                   | no               | `false`                    | Set `true` behind HTTPS                                                                     |
 | `TRUST_PROXY`                                                                                                     | no               | `loopback`                 | Express `trust proxy` setting (client IPs for rate limits)                                  |
 | `HIBP_ENABLED`                                                                                                    | no               | `true`                     | Check new passwords against Have I Been Pwned (fails open when offline)                     |
@@ -237,7 +237,7 @@ In development every email is caught by **Mailpit**; nothing reaches a real inbo
 
 Try a wrong code (it says how many attempts are left), or wait 60 seconds and use **send a new code** (the old code stops working).
 
-Changing your email on the Profile page sends a **"Confirm your email"** link to the new address. Until it is confirmed, a reminder banner offers **Resend link**.
+**Changing the email (OTP).** On Profile → Account, click **Change** next to the email and enter the new address and your current password. A code goes to the **new** address (check Mailpit). The email changes only after you enter it, and the **old** address receives "Your TaskFlow email was changed".
 
 **Sending real emails (optional).** Any SMTP provider works through the `SMTP_*` variables. For example, Gmail with an [app password](https://support.google.com/accounts/answer/185833):
 
@@ -291,15 +291,15 @@ REST API under `/api/v1`, documented interactively at **`/api/docs`** (OpenAPI 3
   - `400` validation/business rule, `401` not signed in or `TOKEN_EXPIRED`, `403` bad origin (CSRF);
   - `404` (also for other users' resources), `409` duplicate, `413`/`415` uploads, `429` with `Retry-After`, `503` dependency down.
 
-| Area      | Endpoints                                                                                                                                                                                                                                                                      |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Auth      | `POST /auth/register`, `/auth/register/verify`, `/auth/register/resend`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/forgot-password`, `/auth/reset-password/verify`, `/auth/reset-password`, `/auth/verify-email`, `/auth/verify-email/resend` |
-| OAuth     | `GET /auth/oauth/providers`, `GET /auth/oauth/:provider[?mode=link]`, `GET /auth/oauth/:provider/callback`                                                                                                                                                                     |
-| Profile   | `GET/PATCH /users/me`, `PATCH /users/me/password`, `PUT/DELETE /users/me/avatar`, `GET /users/me/sessions`, `DELETE /users/me/sessions/:id`, `GET /users/me/accounts`, `DELETE /users/me/accounts/:provider`                                                                   |
-| Tasks     | `GET/POST /tasks` (search, `status`, `priority`, `overdue`, `dueFrom`, `dueTo`, `sortBy`, `sortOrder`, `page`, `pageSize`), `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/move`, `GET /tasks/:id/activities`                                                                |
-| Images    | `POST /tasks/:id/images`, `DELETE /tasks/:id/images/:imageId`, `POST /tasks/:id/images/:imageId/restore`, `GET /images/:id?variant=display\|thumb`                                                                                                                             |
-| Dashboard | `GET /dashboard/stats`, `GET /activities?limit=`                                                                                                                                                                                                                               |
-| System    | `GET /health`                                                                                                                                                                                                                                                                  |
+| Area      | Endpoints                                                                                                                                                                                                                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Auth      | `POST /auth/register`, `/auth/register/verify`, `/auth/register/resend`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/forgot-password`, `/auth/reset-password/verify`, `/auth/reset-password`                                                                                   |
+| OAuth     | `GET /auth/oauth/providers`, `GET /auth/oauth/:provider[?mode=link]`, `GET /auth/oauth/:provider/callback`                                                                                                                                                                                                    |
+| Profile   | `GET/PATCH /users/me`, `GET/POST/DELETE /users/me/email`, `POST /users/me/email/verify`, `POST /users/me/email/resend`, `PATCH /users/me/password`, `PUT/DELETE /users/me/avatar`, `GET /users/me/sessions`, `DELETE /users/me/sessions/:id`, `GET /users/me/accounts`, `DELETE /users/me/accounts/:provider` |
+| Tasks     | `GET/POST /tasks` (search, `status`, `priority`, `overdue`, `dueFrom`, `dueTo`, `sortBy`, `sortOrder`, `page`, `pageSize`), `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/move`, `GET /tasks/:id/activities`                                                                                               |
+| Images    | `POST /tasks/:id/images`, `DELETE /tasks/:id/images/:imageId`, `POST /tasks/:id/images/:imageId/restore`, `GET /images/:id?variant=display\|thumb`                                                                                                                                                            |
+| Dashboard | `GET /dashboard/stats`, `GET /activities?limit=`                                                                                                                                                                                                                                                              |
+| System    | `GET /health`                                                                                                                                                                                                                                                                                                 |
 
 State-changing requests must send an `Origin` header that matches `FRONTEND_URL` (browsers do this automatically). With curl, add `-H "Origin: http://localhost:5173"`.
 
@@ -355,6 +355,15 @@ An npm-workspaces monorepo:
 3. `POST /auth/register/resend` sends a new code after a 60-second cooldown (5 codes per sign-up); the previous code stops working.
 
 Why the account waits for the code: nobody can occupy an email address or username they can't receive mail for, and there are no half-created accounts to clean up. Google/GitHub sign-ups skip the code because the provider has already verified the email.
+
+### Changing the email (OTP)
+
+1. `POST /users/me/email` asks for the new address **and the current password**. A stolen session alone can't move the account to an attacker's inbox.
+2. A 6-digit code is sent to the **new** address. The account keeps its current email meanwhile (`GET /users/me/email` shows the pending change; `DELETE` cancels it).
+3. `POST /users/me/email/verify` applies the change only with the right code. The same limits apply as at sign-up, and the code is bound to both the user and the target address.
+4. The email is updated as verified, and the **previous** address is told about the change, so the real owner notices if it wasn't them.
+
+Because every address is confirmed with a code before it is used, there are no unverified accounts and no separate "confirm your email" links.
 
 ### Password reset
 
