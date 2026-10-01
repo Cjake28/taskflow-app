@@ -1,106 +1,134 @@
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { LogOut, Palette, UserCog } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link2, ShieldCheck, UserRound, X, type LucideIcon } from 'lucide-react';
+import { Tabs } from 'radix-ui';
+import { useSearchParams } from 'react-router';
 
-import { Avatar } from '@/components/common/avatar';
-import { EmptyState } from '@/components/common/empty-state';
-import { ThemeSwitcher } from '@/components/common/theme-switcher';
-import { PageHeader } from '@/components/layout/page-header';
+import { Alert } from '@/components/common/alert';
 import { Button } from '@/components/ui/button';
-import { useAuth, useCurrentUser } from '@/features/auth/use-auth';
+import { useCurrentUser } from '@/features/auth/use-auth';
 
-function memberSince(createdAt: string): string | null {
-  const date = new Date(createdAt);
-  return Number.isNaN(date.getTime()) ? null : format(date, 'MMMM yyyy');
+import { AccountForm } from '../components/account-form';
+import { AccountOverview } from '../components/account-overview';
+import { ConnectedAccounts } from '../components/connected-accounts';
+import { DeviceCard } from '../components/device-card';
+import { PasswordForm } from '../components/password-form';
+import { ProfileHeader } from '../components/profile-header';
+import { SessionsCard } from '../components/sessions-card';
+import {
+  hasOAuthBannerParams,
+  oauthBannerContent,
+  parseOAuthBanner,
+  withoutOAuthBannerParams,
+  type OAuthBanner,
+} from '../lib/oauth-banner';
+import { parseProfileTab, type ProfileTab } from '../lib/profile-tabs';
+
+const TABS: Array<{ value: ProfileTab; label: string; short: string; icon: LucideIcon }> = [
+  { value: 'account', label: 'Account', short: 'Account', icon: UserRound },
+  { value: 'security', label: 'Security', short: 'Security', icon: ShieldCheck },
+  { value: 'connected', label: 'Connected accounts', short: 'Connected', icon: Link2 },
+];
+
+function OAuthBannerAlert({ banner, onDismiss }: { banner: OAuthBanner; onDismiss: () => void }) {
+  const content = oauthBannerContent(banner);
+  return (
+    <div className="relative animate-in duration-200 fade-in-0 slide-in-from-top-1">
+      <Alert
+        variant={content.variant}
+        title={content.title}
+        icon={banner.kind === 'linked' ? Link2 : undefined}
+        className="pr-12"
+      >
+        {content.body}
+      </Alert>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Dismiss"
+        className="absolute top-2 right-2 text-current hover:bg-card/60"
+        onClick={onDismiss}
+      >
+        <X aria-hidden="true" />
+      </Button>
+    </div>
+  );
 }
 
-/**
- * Placeholder profile: identity, theme and log out (the only place phones reach them).
- * The Account / Security / Connected accounts tabs arrive with the users API.
- */
+/** Profile with URL-driven tabs (`?tab=account|security|connected`, spec §14.3–14.4). */
 export function ProfilePage() {
   const user = useCurrentUser();
-  const { logout } = useAuth();
-  const [loggingOut, setLoggingOut] = useState(false);
-  const since = memberSince(user.createdAt);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = parseProfileTab(searchParams.get('tab'));
+  // Read once: the OAuth result parameters are removed from the URL right away.
+  const [banner, setBanner] = useState(() => parseOAuthBanner(searchParams));
+
+  useEffect(() => {
+    if (hasOAuthBannerParams(searchParams)) {
+      setSearchParams(withoutOAuthBannerParams(searchParams), { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const changeTab = (value: string) => {
+    setBanner(null);
+    setSearchParams(
+      (previous) => {
+        const next = withoutOAuthBannerParams(previous);
+        next.set('tab', value);
+        return next;
+      },
+      { preventScrollReset: true },
+    );
+  };
+
+  const current = TABS.find((item) => item.value === tab) ?? TABS[0];
 
   return (
     <>
-      <title>Profile · TaskFlow</title>
-      <PageHeader title="Profile" />
+      <title>{`${current?.label ?? 'Profile'} · Profile · TaskFlow`}</title>
+      <ProfileHeader user={user} />
 
-      <section className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-        <Avatar user={user} size="xl" className="shadow-[0_16px_28px_-14px_rgb(242_139_34/0.8)]" />
-        <div className="min-w-0">
-          <h2 className="text-[22px] font-extrabold sm:text-[26px]">
-            {user.firstName} {user.lastName}
-          </h2>
-          <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-sm text-muted-foreground sm:justify-start">
-            <span>@{user.username}</span>
-            <span aria-hidden="true">·</span>
-            <span className="break-all">{user.email}</span>
-          </p>
-          {since ? (
-            <p className="mt-1 text-[13px] text-muted-foreground">Member since {since}</p>
-          ) : null}
-        </div>
-      </section>
+      {banner ? <OAuthBannerAlert banner={banner} onDismiss={() => setBanner(null)} /> : null}
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section
-          className="rounded-card bg-card p-[22px] shadow-card"
-          aria-labelledby="appearance-title"
+      <Tabs.Root value={tab} onValueChange={changeTab} className="flex flex-col gap-5">
+        <Tabs.List
+          aria-label="Profile sections"
+          className="grid w-full grid-cols-3 gap-1 rounded-full bg-fill p-[5px] sm:flex sm:w-max"
         >
-          <div className="mb-1.5 flex items-center gap-2.5">
-            <span className="grid size-[34px] place-items-center rounded-[11px] [--tint:var(--primary)] bg-tint-soft text-primary">
-              <Palette className="size-[17px]" aria-hidden="true" />
-            </span>
-            <h3 id="appearance-title" className="text-base font-extrabold">
-              Appearance
-            </h3>
-          </div>
-          <p className="mb-4 text-[13.5px] text-muted-foreground">
-            Auto follows your device&apos;s light or dark setting.
-          </p>
-          <ThemeSwitcher />
-        </section>
+          {TABS.map(({ value, label, short, icon: Icon }) => (
+            <Tabs.Trigger
+              key={value}
+              value={value}
+              className="inline-flex cursor-pointer items-center justify-center gap-[7px] rounded-full px-2 py-[9px] text-[13px] font-bold whitespace-nowrap text-muted-foreground transition-[background-color,color,box-shadow] duration-150 hover:text-foreground focus-visible:ring-4 focus-visible:ring-ring/30 focus-visible:outline-none data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-card sm:px-4 sm:text-[13.5px]"
+            >
+              <Icon aria-hidden="true" className="size-4 shrink-0" />
+              <span className="sm:hidden">{short}</span>
+              <span className="hidden sm:inline">{label}</span>
+            </Tabs.Trigger>
+          ))}
+        </Tabs.List>
 
-        <section
-          className="rounded-card bg-card p-[22px] shadow-card"
-          aria-labelledby="session-title"
-        >
-          <div className="mb-1.5 flex items-center gap-2.5">
-            <span className="grid size-[34px] place-items-center rounded-[11px] [--tint:var(--danger)] bg-tint-soft text-danger">
-              <LogOut className="size-[17px]" aria-hidden="true" />
-            </span>
-            <h3 id="session-title" className="text-base font-extrabold">
-              Session
-            </h3>
+        <Tabs.Content value="account" className="outline-none">
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            {/* Remount after an email or password change so the schema sees the new account. */}
+            <AccountForm key={`${user.email}:${user.hasPassword}`} user={user} />
+            <AccountOverview user={user} />
           </div>
-          <p className="mb-4 text-[13.5px] text-muted-foreground">
-            Sign out of TaskFlow on this device. Other open tabs sign out too.
-          </p>
-          <Button
-            variant="destructive-soft"
-            loading={loggingOut}
-            onClick={() => {
-              setLoggingOut(true);
-              void logout();
-            }}
-          >
-            {!loggingOut && <LogOut aria-hidden="true" />}
-            Log out
-          </Button>
-        </section>
-      </div>
+        </Tabs.Content>
 
-      <EmptyState
-        icon={UserCog}
-        tint="var(--status-done)"
-        size="sm"
-        title="More settings are coming soon"
-        description="Edit your details, change your password, manage active sessions and connected accounts."
-      />
+        <Tabs.Content value="security" className="outline-none">
+          <div className="grid items-start gap-5 lg:grid-cols-2">
+            <PasswordForm key={String(user.hasPassword)} user={user} />
+            <div className="flex min-w-0 flex-col gap-5">
+              <SessionsCard />
+              <DeviceCard />
+            </div>
+          </div>
+        </Tabs.Content>
+
+        <Tabs.Content value="connected" className="outline-none">
+          <ConnectedAccounts user={user} />
+        </Tabs.Content>
+      </Tabs.Root>
     </>
   );
 }
