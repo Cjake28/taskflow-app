@@ -4,6 +4,7 @@ The shortest way to get TaskFlow running on your computer. Copy and paste the co
 
 - **Option A: with Docker.** Easiest: 3 commands.
 - **Option B: without Docker.** You install PostgreSQL and Redis yourself.
+- **Optional extras:** [real emails through Gmail](#7-optional-send-real-emails-gmail-smtp) and [Google / GitHub sign-in](#8-optional-google-and-github-sign-in).
 
 Everything is preconfigured for local use: database user and password, Redis password, email inbox, ports and demo accounts. You don't have to edit any settings (except one line in Option B, explained there).
 
@@ -197,5 +198,97 @@ You can also register your own account. The 6-digit code arrives in Mailpit (htt
 - **Option B:** `npx -w @taskflow/backend prisma migrate reset --force` (empties the database and re-creates the tables), then `npm run db:seed` for the demo accounts.
 
 You can run `npm run setup` as many times as you like. It keeps your `backend/.env`, applies any new migrations and resets the demo accounts (add `-- --no-seed` to leave them as they are).
+
+---
+
+## 7. Optional: send real emails (Gmail SMTP)
+
+By default every email goes to **Mailpit** (http://localhost:8025), not to real inboxes. That is enough to test everything. Follow this only if you want emails delivered to a real address.
+
+1. **Turn on 2-Step Verification** for your Google account: https://myaccount.google.com/security → **2-Step Verification**. App passwords need it.
+2. **Create an app password:** https://myaccount.google.com/apppasswords
+   - App name: `TaskFlow` → **Create**.
+   - Copy the 16-character password. Google shows it only once.
+3. **Edit `backend/.env`.** Replace the six `SMTP_` / `MAIL_FROM` lines with these, using your Gmail address and the app password **without spaces**:
+
+   ```env
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_SECURE=true
+   SMTP_USER=you@gmail.com
+   SMTP_PASS=abcdefghijklmnop
+   MAIL_FROM="TaskFlow <you@gmail.com>"
+   ```
+
+4. **Restart the app:** press `Ctrl + C`, then run `npm run dev`.
+5. **Try it:** register with your real email, or use **Forgot password?** on an account with your email. The email arrives in your inbox (check Spam the first time).
+
+To go back to Mailpit, copy the six lines back from `backend/.env.example`.
+
+`backend/.env` is ignored by Git, so your app password never ends up in the repository. Don't share it.
+
+---
+
+## 8. Optional: Google and GitHub sign-in
+
+The **Google** and **GitHub** buttons on the login page appear only after you add the keys below. They don't need SMTP or Mailpit. Each takes about 5 minutes and is free.
+
+The addresses below use the default web app port `5173`. If you changed `WEB_PORT`, use your port instead.
+
+### Google
+
+1. Open https://console.cloud.google.com and sign in.
+2. Top bar → project picker → **New project** → name it `TaskFlow` → **Create**. Make sure it is selected.
+3. Menu → **APIs & Services** → **OAuth consent screen** (also called **Google Auth Platform**) → **Get started**:
+   - App name `TaskFlow`;
+   - your email as the support email;
+   - Audience **External**;
+   - your email as the contact.
+
+   → **Create**. Leave the **Branding** page (logo, links) empty; it isn't needed for local use.
+
+4. **Audience** → **Test users** → **Add users** → add the Gmail addresses that will sign in. While the app is in "Testing", only these accounts can use Google sign-in.
+5. **Clients** → **Create client**:
+   - Application type: **Web application**;
+   - Name: `TaskFlow local`;
+   - **Authorized redirect URIs** → **Add URI**: `http://localhost:5173/api/v1/auth/oauth/google/callback`.
+
+   → **Create**.
+
+6. Copy the **Client ID** and **Client secret** right away (the secret is shown only once; **Download JSON** keeps a copy).
+7. In `backend/.env`, fill in:
+
+   ```env
+   GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+   GOOGLE_CLIENT_SECRET=GOCSPX-...
+   ```
+
+8. Restart the app (`Ctrl + C`, then `npm run dev`). The login page now shows **Google**.
+
+If Google says **redirect_uri_mismatch**, check that the redirect URI matches exactly (port included) and wait a few minutes: Google can take that long to apply changes. If it says **Access blocked**, add that Gmail address to **Test users**.
+
+### GitHub
+
+1. Open https://github.com/settings/developers → **OAuth Apps** → **New OAuth App**.
+2. Fill in:
+   - Application name: `TaskFlow`;
+   - Homepage URL: `http://localhost:5173`;
+   - Authorization callback URL: `http://localhost:5173/api/v1/auth/oauth/github/callback`.
+
+   Leave "Enable Device Flow" unchecked → **Register application**.
+
+3. Copy the **Client ID**, then click **Generate a new client secret** and copy it (shown only once).
+4. In `backend/.env`, fill in:
+
+   ```env
+   GITHUB_CLIENT_ID=Ov23li...
+   GITHUB_CLIENT_SECRET=...
+   ```
+
+5. Restart the app. The login page now shows **GitHub**. Any GitHub account can sign in; there is no test-user list.
+
+**Already have a TaskFlow account?** Sign in with your password, then use Profile → **Connected accounts** → **Connect** to link Google or GitHub to it.
+
+---
 
 For how the app works, the API and the tests, see the [README](README.md).
