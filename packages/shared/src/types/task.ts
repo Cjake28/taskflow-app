@@ -1,4 +1,5 @@
 import type { ActivityAction, TaskPriority, TaskStatus } from '../constants/task';
+import type { TaskReminderDto } from './notification';
 
 export interface ImageDto {
   id: string;
@@ -24,12 +25,16 @@ export interface TaskDto {
   isOverdue: boolean;
   imageCount: number;
   coverThumbUrl: string | null;
+  /** Reminders that have not been sent yet. */
+  reminderCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface TaskDetailsDto extends TaskDto {
   images: ImageDto[];
+  /** Ordered by when they fire; reminders without a time (no due date) come last. */
+  reminders: TaskReminderDto[];
 }
 
 export interface ActivityDto {
