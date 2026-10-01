@@ -4,6 +4,26 @@ TaskFlow is a full-stack task management system. Registered users manage their o
 
 It was built for a full-stack developer technical assessment. The required stack is React + TypeScript + React Router + Tailwind on the frontend, Node.js + Express + TypeScript on the backend, and PostgreSQL + Prisma for data.
 
+![Dashboard](docs/screenshots/dashboard.webp)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/tasks-list.webp" alt="Tasks list with search, filters and sorting" /></td>
+    <td><img src="docs/screenshots/tasks-board.webp" alt="Kanban board with drag and drop" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/task-details.webp" alt="Task details with images and activity history" /></td>
+    <td><img src="docs/screenshots/profile.webp" alt="Profile with account, security and connected accounts" /></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/login.webp" alt="Login page" /></td>
+    <td align="center">
+      <img src="docs/screenshots/mobile-dashboard-dark.webp" alt="Mobile dashboard in dark mode" width="45%" />
+      <img src="docs/screenshots/mobile-board-dark.webp" alt="Mobile board in dark mode" width="45%" />
+    </td>
+  </tr>
+</table>
+
 - [Features](#features)
 - [Technologies](#technologies)
 - [Prerequisites](#prerequisites)
@@ -232,13 +252,22 @@ npm run test -w @taskflow/frontend     # component and unit tests (Vitest + Test
 npm run lint && npm run typecheck && npm run format:check
 ```
 
-- The backend suite has around 190 tests. It covers:
+- About 390 tests in total: around 190 backend, 175 frontend and 20 shared.
+- The **backend** suite covers:
   - registration, login, sessions and refresh rotation;
   - password reset, email verification and OAuth (with a fake provider);
   - task CRUD, filters and ownership;
   - images (processing, storage drivers, serving, retention);
   - the dashboard, rate limits and the error envelope.
 - Time-dependent behaviour (token expiry, retention) is tested with an injectable clock.
+- The **frontend** suite covers:
+  - the API client (single-flight refresh), form error mapping and URL state;
+  - board ordering, upload checks, cache updates and agenda grouping;
+  - profile diffing and the main forms and dialogs.
+- Every flow was also exercised in a real browser with Playwright, against the running app:
+  - desktop 1440×900 and mobile 390×844, light and dark;
+  - register, log in and out, protected redirects, forgot/reset password through Mailpit, and cross-user access;
+  - tasks CRUD, search, filters, board drag and drop, images, profile.
 - Storage on S3: `docker compose --profile s3 up -d` starts SeaweedFS. Then `TEST_STORAGE_DRIVER=s3 S3_TEST_ENDPOINT=http://localhost:8333 npm run test -w @taskflow/backend` runs the storage and image tests against it.
 - CI: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs format, lint, typecheck, all tests, the web build and a dependency audit, plus the S3 tests against SeaweedFS.
 
