@@ -8,8 +8,8 @@ The spec covers several subsystems (backend API, background jobs, file storage, 
 
 | # | Plan | Spec phases (§21) | Deliverable | File | Status |
 |---|---|---|---|---|---|
-| 1 | Foundation and authentication API | 0, 1, 2 | Monorepo, Docker services, shared package, backend foundation, register / login / refresh / logout / logout-all / `GET /users/me`, rate limiting, origin checks — all covered by tests | — | Done |
-| 2 | Jobs, email, password reset and account API | 3, 4 | Jobs module (email/media/maintenance queues, worker), Mailpit email, forgot / verify / reset password, profile update, change/set password, sessions list/revoke, `auth.cleanup` | — | Done (PRs #3–#5) |
+| 1 | Foundation and authentication API | 0, 1, 2 | Monorepo, Docker services, shared package, backend foundation, register / login / refresh / logout / logout-all / `GET /users/me`, rate limiting, origin checks — all covered by tests | — | Done (PRs #1–#3) |
+| 2 | Jobs, email, password reset and account API | 3, 4 | Jobs module (email/media/maintenance queues, worker), Mailpit email, forgot / verify / reset password, profile update, change/set password, sessions list/revoke, `auth.cleanup` | — | Done (PRs #4–#5) |
 | 3 | Tasks, images and dashboard API | 5, 6, 7 | Task CRUD / list / move / activity, storage drivers (local, S3, R2), sharp pipeline, task images and avatars, retention and orphan-sweep jobs, dashboard stats, activity feed | — | Done (PRs #6–#9) |
 | 4 | Frontend foundation and auth screens | 8, 9 | Vite + React 19 + Tailwind 4 tokens + shadcn, router, API client with single-flight refresh, token scheduler, auth context and guards, layouts, login / register / forgot / reset screens | — | Done (PRs #10, #12) |
 | 5 | Application screens | 10–15 | Dashboard, tasks list / board / details / dialog, images UI, profile, states, dark mode, hotkeys, responsive and accessibility passes | — | Done (PRs #17, #20, #22) |
