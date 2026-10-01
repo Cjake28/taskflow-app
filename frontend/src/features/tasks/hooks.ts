@@ -173,6 +173,9 @@ export function useDeleteTask() {
     mutationFn: (task: Pick<TaskDto, 'id' | 'title'>) => tasksApi.remove(task.id),
     onSuccess: (_data, task) => {
       removeTaskFromCaches(queryClient, task.id);
+      // Gone for good: drop its details so the invalidation below does not refetch a 404.
+      queryClient.removeQueries({ queryKey: queryKeys.tasks.detail(task.id) });
+      queryClient.removeQueries({ queryKey: queryKeys.tasks.activities(task.id) });
       toast('Task deleted', {
         description: `“${task.title}” was removed.`,
         icon: createElement(Trash2, { className: 'size-4' }),
