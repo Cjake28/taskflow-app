@@ -6,7 +6,7 @@ export interface UserDto {
   email: string;
   avatarUrl: string | null;
   hasPassword: boolean;
-  /** False until the address is confirmed through the emailed link (OAuth emails count as verified). */
+  /** Confirmed with an emailed code at sign-up or email change (OAuth emails count as verified). */
   emailVerified: boolean;
   createdAt: string;
 }
@@ -18,6 +18,13 @@ export interface PendingRegistrationDto {
   /** When the current code stops working. */
   expiresAt: string;
   /** Earliest time a new code can be requested. */
+  resendAvailableAt: string;
+}
+
+/** An email change waiting for the code sent to the new address. */
+export interface PendingEmailChangeDto {
+  email: string;
+  expiresAt: string;
   resendAvailableAt: string;
 }
 
