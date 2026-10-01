@@ -54,7 +54,7 @@ export function ProfileHeader({ user }: { user: UserDto }) {
         <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-sm text-muted-foreground sm:justify-start">
           <span>@{user.username}</span>
           <span aria-hidden="true">·</span>
-          <span className="break-all">{user.email}</span>
+          <span className="wrap-anywhere">{user.email}</span>
         </p>
         <ul
           aria-label="Account status"

@@ -1,5 +1,11 @@
 import { createContext } from 'react';
-import type { LoginData, RegisterData, SessionPayload, UserDto } from '@taskflow/shared';
+import type {
+  LoginData,
+  PendingRegistrationDto,
+  RegisterData,
+  SessionPayload,
+  UserDto,
+} from '@taskflow/shared';
 
 /** Why the visitor is signed out; guards use it to pick the right login URL. */
 export type SignedOutReason = 'initial' | 'logout' | 'expired';
@@ -16,7 +22,10 @@ export interface AuthContextValue {
   status: AuthStatus;
   user: UserDto | null;
   login: (input: LoginData) => Promise<SessionPayload>;
-  register: (input: RegisterData) => Promise<SessionPayload>;
+  /** Starts a sign-up: the server emails a code (no account or session yet). */
+  register: (input: RegisterData) => Promise<PendingRegistrationDto>;
+  /** Confirms the emailed code; creates the account and signs the user in. */
+  verifyRegistration: (registrationId: string, code: string) => Promise<SessionPayload>;
   /** Revokes the session server-side, clears cached data and signs every tab out. */
   logout: () => Promise<void>;
   /** Clears the local session without calling the API (e.g. after a password reset). */

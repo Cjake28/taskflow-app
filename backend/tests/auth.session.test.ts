@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { SESSION_GRACE_MS } from '../src/modules/auth/sessions.service';
 import { cookieHeader, setCookies } from './setup/cookies';
 import { createHarness, type Harness } from './setup/harness';
+import { registerAndVerify } from './setup/signup';
 
 const REFRESH = '/api/v1/auth/refresh';
 const LOGOUT = '/api/v1/auth/logout';
@@ -16,7 +17,7 @@ afterAll(() => h.close());
 
 async function register() {
   counter += 1;
-  const res = await h.post('/api/v1/auth/register').send({
+  const res = await registerAndVerify(h, {
     firstName: 'Test',
     lastName: 'User',
     username: `session${counter}`,

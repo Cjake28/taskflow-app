@@ -18,6 +18,7 @@ export const LIMITS = {
   resetIp: { keyPrefix: 'reset-ip', points: 10, durationSec: 15 * 60 },
   verifyIp: { keyPrefix: 'verify-ip', points: 20, durationSec: 15 * 60 },
   verifyResend: { keyPrefix: 'verify-resend-user', points: 3, durationSec: 60 * 60 },
+  signupOtpIp: { keyPrefix: 'signup-otp-ip', points: 30, durationSec: 15 * 60 },
   refreshIp: { keyPrefix: 'refresh-ip', points: 30, durationSec: 60 },
   oauthIp: { keyPrefix: 'oauth-ip', points: 30, durationSec: 15 * 60 },
   upload: { keyPrefix: 'upload-user', points: 30, durationSec: 15 * 60 },

@@ -47,6 +47,7 @@ It was built for a full-stack developer technical assessment. The required stack
 **Authentication**
 
 - Register with first name, last name, username, email, password and confirmation. Everything is validated on the client and on the server (with shared Zod schemas), including uniqueness and a password policy. The policy requires 8+ characters with upper and lower case, a number and a symbol; it rejects passwords that contain your username or email and passwords found in known breaches ([HIBP k-anonymity](https://haveibeenpwned.com/API/v3#PwnedPasswords)).
+- **Email OTP on sign-up:** the account is created only after the user enters the 6-digit code emailed to them. Codes expire after 10 minutes, 5 wrong codes cancel the sign-up, and a new code can be requested after 60 seconds.
 - Log in with email **or** username, optionally with "Remember me". The session survives page refreshes (httpOnly cookies with refresh-token rotation).
 - Forgot and reset password by email:
   - the response never reveals whether an account exists;
@@ -54,7 +55,7 @@ It was built for a full-stack developer technical assessment. The required stack
   - a reset signs out every device.
 - Log out, log out of all devices, and a list of active sessions (browser and OS) with revoke.
 - **Bonus:**
-  - email verification (confirmation link after registration or an email change);
+  - email confirmation: the sign-up code, and a confirmation link after an email change;
   - change or set your password while logged in;
   - Google and GitHub sign-in with explicit account linking;
   - rate limiting and brute-force protection.
@@ -228,7 +229,15 @@ In development every email is caught by **Mailpit**; nothing reaches a real inbo
 5. Choose a new password. You are sent to the login page. The old password no longer works, every session of that account is signed out, and a "password changed" email appears in Mailpit.
 6. Open the same link again: it is rejected as already used. Links also expire after `PASSWORD_RESET_TTL_MINUTES` (30).
 
-Registration also sends a **"Confirm your email"** message (bonus email verification). Its link opens `/verify-email`, and signed-in users see a reminder banner with **Resend link** until the address is confirmed.
+**Sign-up code (OTP).**
+
+1. Register at http://localhost:5173/register. You land on **Check your email**.
+2. In Mailpit, open "123456 is your TaskFlow verification code" (the subject starts with the code).
+3. Type or paste the 6 digits. The account is created and you are signed in.
+
+Try a wrong code (it says how many attempts are left), or wait 60 seconds and use **send a new code** (the old code stops working).
+
+Changing your email on the Profile page sends a **"Confirm your email"** link to the new address. Until it is confirmed, a reminder banner offers **Resend link**.
 
 **Sending real emails (optional).** Any SMTP provider works through the `SMTP_*` variables. For example, Gmail with an [app password](https://support.google.com/accounts/answer/185833):
 
@@ -282,15 +291,15 @@ REST API under `/api/v1`, documented interactively at **`/api/docs`** (OpenAPI 3
   - `400` validation/business rule, `401` not signed in or `TOKEN_EXPIRED`, `403` bad origin (CSRF);
   - `404` (also for other users' resources), `409` duplicate, `413`/`415` uploads, `429` with `Retry-After`, `503` dependency down.
 
-| Area      | Endpoints                                                                                                                                                                                                                    |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Auth      | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/forgot-password`, `/auth/reset-password/verify`, `/auth/reset-password`, `/auth/verify-email`, `/auth/verify-email/resend` |
-| OAuth     | `GET /auth/oauth/providers`, `GET /auth/oauth/:provider[?mode=link]`, `GET /auth/oauth/:provider/callback`                                                                                                                   |
-| Profile   | `GET/PATCH /users/me`, `PATCH /users/me/password`, `PUT/DELETE /users/me/avatar`, `GET /users/me/sessions`, `DELETE /users/me/sessions/:id`, `GET /users/me/accounts`, `DELETE /users/me/accounts/:provider`                 |
-| Tasks     | `GET/POST /tasks` (search, `status`, `priority`, `overdue`, `dueFrom`, `dueTo`, `sortBy`, `sortOrder`, `page`, `pageSize`), `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/move`, `GET /tasks/:id/activities`              |
-| Images    | `POST /tasks/:id/images`, `DELETE /tasks/:id/images/:imageId`, `POST /tasks/:id/images/:imageId/restore`, `GET /images/:id?variant=display\|thumb`                                                                           |
-| Dashboard | `GET /dashboard/stats`, `GET /activities?limit=`                                                                                                                                                                             |
-| System    | `GET /health`                                                                                                                                                                                                                |
+| Area      | Endpoints                                                                                                                                                                                                                                                                      |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Auth      | `POST /auth/register`, `/auth/register/verify`, `/auth/register/resend`, `/auth/login`, `/auth/refresh`, `/auth/logout`, `/auth/logout-all`, `/auth/forgot-password`, `/auth/reset-password/verify`, `/auth/reset-password`, `/auth/verify-email`, `/auth/verify-email/resend` |
+| OAuth     | `GET /auth/oauth/providers`, `GET /auth/oauth/:provider[?mode=link]`, `GET /auth/oauth/:provider/callback`                                                                                                                                                                     |
+| Profile   | `GET/PATCH /users/me`, `PATCH /users/me/password`, `PUT/DELETE /users/me/avatar`, `GET /users/me/sessions`, `DELETE /users/me/sessions/:id`, `GET /users/me/accounts`, `DELETE /users/me/accounts/:provider`                                                                   |
+| Tasks     | `GET/POST /tasks` (search, `status`, `priority`, `overdue`, `dueFrom`, `dueTo`, `sortBy`, `sortOrder`, `page`, `pageSize`), `GET/PATCH/DELETE /tasks/:id`, `PATCH /tasks/:id/move`, `GET /tasks/:id/activities`                                                                |
+| Images    | `POST /tasks/:id/images`, `DELETE /tasks/:id/images/:imageId`, `POST /tasks/:id/images/:imageId/restore`, `GET /images/:id?variant=display\|thumb`                                                                                                                             |
+| Dashboard | `GET /dashboard/stats`, `GET /activities?limit=`                                                                                                                                                                                                                               |
+| System    | `GET /health`                                                                                                                                                                                                                                                                  |
 
 State-changing requests must send an `Origin` header that matches `FRONTEND_URL` (browsers do this automatically). With curl, add `-H "Origin: http://localhost:5173"`.
 
@@ -333,6 +342,19 @@ An npm-workspaces monorepo:
   - login takes the same time whether or not the account exists (dummy hash);
   - state-changing requests must come from the app's origin (CSRF);
   - helmet sets security headers.
+
+### Sign-up with an email code (OTP)
+
+1. `POST /auth/register` validates everything first: fields, password policy, breached passwords, and whether the email and username are free. Then:
+   - The account is **not** created yet. The details (with the password already hashed with argon2id) are kept in Redis as a pending sign-up for 10 minutes, under a random `registrationId`.
+   - A background job generates a random 6-digit code and stores only its HMAC (keyed with a server secret and bound to the `registrationId`). The code itself exists only in the email.
+2. `POST /auth/register/verify` checks the code:
+   - At most 5 attempts, counted atomically with Redis `INCR`, so parallel guesses can't exceed it; after 5 the sign-up is cancelled.
+   - On success the pending record is **claimed by deleting it**, so a code works only once.
+   - Only then is the user created (with `emailVerifiedAt` set) and signed in.
+3. `POST /auth/register/resend` sends a new code after a 60-second cooldown (5 codes per sign-up); the previous code stops working.
+
+Why the account waits for the code: nobody can occupy an email address or username they can't receive mail for, and there are no half-created accounts to clean up. Google/GitHub sign-ups skip the code because the provider has already verified the email.
 
 ### Password reset
 

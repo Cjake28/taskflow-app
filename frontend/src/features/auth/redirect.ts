@@ -1,7 +1,13 @@
 export const DEFAULT_AUTHENTICATED_PATH = '/dashboard';
 
 /** Public-only pages: never a useful place to return to after logging in. */
-const AUTH_PATHS = ['/login', '/register', '/forgot-password', '/reset-password'];
+const AUTH_PATHS = [
+  '/login',
+  '/register',
+  '/register/verify',
+  '/forgot-password',
+  '/reset-password',
+];
 
 // Browsers strip tabs/newlines from URLs ("/\t/evil.com" becomes "//evil.com"), so any
 // whitespace or control character is rejected outright.

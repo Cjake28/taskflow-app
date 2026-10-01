@@ -48,7 +48,7 @@ export function VerifyEmailBanner() {
       <MailWarning className="size-5 shrink-0 text-status-progress" aria-hidden="true" />
       <p className="min-w-0 flex-1">
         Confirm your email address. We sent a link to{' '}
-        <span className="font-extrabold break-all">{user.email}</span>.
+        <span className="font-extrabold wrap-anywhere">{user.email}</span>.
       </p>
       <div className="flex items-center gap-1">
         <Button

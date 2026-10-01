@@ -7,6 +7,7 @@ export interface JobPayloads {
   'email.password-reset-request': { email: string };
   'email.password-changed': { userId: string };
   'email.verify-email': { userId: string };
+  'email.signup-otp': { registrationId: string };
   'avatar.import': { userId: string; url: string };
   'storage.delete': { keys: string[] };
   'images.purge': Record<string, never>;
@@ -20,6 +21,7 @@ export const JOB_QUEUES: Record<JobName, QueueName> = {
   'email.password-reset-request': 'email',
   'email.password-changed': 'email',
   'email.verify-email': 'email',
+  'email.signup-otp': 'email',
   'avatar.import': 'media',
   'storage.delete': 'media',
   'images.purge': 'maintenance',

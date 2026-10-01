@@ -1,5 +1,6 @@
 import type {
   LoginData,
+  PendingRegistrationDto,
   RegisterData,
   ResetPasswordData,
   SessionPayload,
@@ -11,7 +12,21 @@ import { api, refreshSession } from '@/lib/api-client';
 export type OAuthProviderId = 'google' | 'github';
 
 export const authApi = {
-  register: (input: RegisterData) => api.post<SessionPayload>('/auth/register', input),
+  /** Step 1 of sign-up: emails a code; no account exists yet. */
+  register: (input: RegisterData) => api.post<PendingRegistrationDto>('/auth/register', input),
+  /** Step 2: the code creates the account and starts a session. */
+  verifyRegistration: (registrationId: string, code: string) =>
+    api.post<SessionPayload>(
+      '/auth/register/verify',
+      { registrationId, code },
+      { retryOnExpired: false },
+    ),
+  resendRegistrationCode: (registrationId: string) =>
+    api.post<PendingRegistrationDto>(
+      '/auth/register/resend',
+      { registrationId },
+      { retryOnExpired: false },
+    ),
   login: (input: LoginData) => api.post<SessionPayload>('/auth/login', input),
   /** Single-flight; also used for the silent boot check. */
   refresh: refreshSession,

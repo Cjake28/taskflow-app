@@ -35,7 +35,7 @@ function CheckYourEmail({ email, onReset }: { email: string; onReset: () => void
       <IconArt icon={MailCheck} tint="var(--status-done)" size="sm" className="mb-4" />
       <h1 className="text-xl font-extrabold">Check your email</h1>
       <p role="status" className="mt-2 max-w-[320px] text-sm leading-relaxed text-muted-foreground">
-        If an account exists for <b className="font-bold break-all text-foreground">{email}</b>,
+        If an account exists for <b className="font-bold wrap-anywhere text-foreground">{email}</b>,
         we&apos;ve sent reset instructions. The link expires in 30 minutes.
       </p>
       <div className="mt-6 flex w-full flex-col gap-2.5">

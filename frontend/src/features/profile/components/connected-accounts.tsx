@@ -76,7 +76,7 @@ function ProviderRow({
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-bold">{name}</p>
-        <p className="text-[12.5px] [overflow-wrap:anywhere] text-muted-foreground">
+        <p className="text-[12.5px] wrap-anywhere text-muted-foreground">
           {account ? connectedLine(account) : 'Not connected'}
         </p>
         {account && isLastMethod ? (

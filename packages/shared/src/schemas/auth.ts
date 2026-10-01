@@ -42,6 +42,25 @@ export const registerSchema = z
 export type RegisterInput = z.input<typeof registerSchema>;
 export type RegisterData = z.output<typeof registerSchema>;
 
+/** Length of the one-time code emailed when an account is created. */
+export const SIGNUP_OTP_LENGTH = 6;
+
+const registrationIdSchema = z.uuid('This sign-up has expired. Please start again.');
+
+export const verifyRegistrationSchema = z.strictObject({
+  registrationId: registrationIdSchema,
+  code: z
+    .string({ error: 'Enter the 6-digit code' })
+    .trim()
+    .regex(/^\d{6}$/, 'Enter the 6-digit code'),
+});
+
+export type VerifyRegistrationData = z.output<typeof verifyRegistrationSchema>;
+
+export const resendRegistrationSchema = z.strictObject({ registrationId: registrationIdSchema });
+
+export type ResendRegistrationData = z.output<typeof resendRegistrationSchema>;
+
 export const loginSchema = z.strictObject({
   identifier: z.preprocess(
     normalizeIdentifier,
