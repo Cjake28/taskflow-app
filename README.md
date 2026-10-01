@@ -16,6 +16,10 @@ It was built for a full-stack developer technical assessment. The required stack
     <td><img src="docs/screenshots/profile.webp" alt="Profile with account, security and connected accounts" /></td>
   </tr>
   <tr>
+    <td><img src="docs/screenshots/calendar.webp" alt="Month calendar of tasks by due date" /></td>
+    <td><img src="docs/screenshots/activity.webp" alt="Activity history with date and type filters" /></td>
+  </tr>
+  <tr>
     <td><img src="docs/screenshots/login.webp" alt="Login page" /></td>
     <td align="center">
       <img src="docs/screenshots/mobile-dashboard-dark.webp" alt="Mobile dashboard in dark mode" width="45%" />
