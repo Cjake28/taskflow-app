@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import type { ImageDto } from '@taskflow/shared';
 import { ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
@@ -17,6 +17,8 @@ export interface LightboxProps {
   onIndexChange: (index: number) => void;
   onClose: () => void;
   onRemove?: (image: ImageDto, index: number) => void;
+  /** Where focus goes after closing (the lightbox opens programmatically, so there is no trigger). */
+  onReturnFocus?: (index: number) => void;
 }
 
 const roundButton =
@@ -26,9 +28,20 @@ const roundButton =
  * Full-size viewer on the Radix Dialog (spec §14.8): ← / → to navigate, Esc to close, focus
  * trapped. Always dark so photos read well in either theme.
  */
-export function Lightbox({ images, index, onIndexChange, onClose, onRemove }: LightboxProps) {
+export function Lightbox({
+  images,
+  index,
+  onIndexChange,
+  onClose,
+  onRemove,
+  onReturnFocus,
+}: LightboxProps) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  // Keep the last image on screen while the lightbox fades out.
+  const [shown, setShown] = useState(index ?? 0);
+  if (index !== null && index !== shown) setShown(index);
   const open = index !== null && images.length > 0;
-  const current = open ? Math.min(index, images.length - 1) : 0;
+  const current = Math.max(0, Math.min(index ?? shown, images.length - 1));
   const image = images[current];
   const count = images.length;
 
@@ -61,6 +74,16 @@ export function Lightbox({ images, index, onIndexChange, onClose, onRemove }: Li
           <DialogPrimitive.Content
             onKeyDown={onKeyDown}
             aria-describedby={undefined}
+            onOpenAutoFocus={(event) => {
+              // Start on Close rather than the first button (Remove).
+              event.preventDefault();
+              closeRef.current?.focus();
+            }}
+            onCloseAutoFocus={(event) => {
+              if (!onReturnFocus) return;
+              event.preventDefault();
+              onReturnFocus(current);
+            }}
             className="fixed inset-0 z-50 flex flex-col text-white outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
           >
             <header className="flex items-center gap-3 px-4 pt-4 pb-2 sm:px-6">
@@ -85,7 +108,7 @@ export function Lightbox({ images, index, onIndexChange, onClose, onRemove }: Li
                   <Trash2 aria-hidden="true" className="size-[18px]" />
                 </button>
               ) : null}
-              <DialogPrimitive.Close className={roundButton} aria-label="Close">
+              <DialogPrimitive.Close ref={closeRef} className={roundButton} aria-label="Close">
                 <X aria-hidden="true" className="size-5" />
               </DialogPrimitive.Close>
             </header>

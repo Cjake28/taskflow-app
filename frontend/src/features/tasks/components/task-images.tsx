@@ -127,6 +127,9 @@ export function TaskImages({ task }: { task: TaskDetailsDto }) {
         index={viewing}
         onIndexChange={setViewing}
         onClose={() => setViewing(null)}
+        onReturnFocus={(index) =>
+          document.querySelector<HTMLElement>(`[data-gallery-index="${index}"]`)?.focus()
+        }
         onRemove={(image, index) => {
           setViewing(null);
           setRemoving({ image, index });

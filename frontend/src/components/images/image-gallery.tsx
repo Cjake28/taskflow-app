@@ -29,6 +29,7 @@ export function ImageGallery({ images, onOpen, onRemove, className }: ImageGalle
               type="button"
               onClick={() => onOpen(index)}
               aria-label={`Open ${alt}`}
+              data-gallery-index={index}
               className="block size-full cursor-zoom-in overflow-hidden rounded-thumb shadow-card transition-transform duration-200 focus-visible:ring-4 focus-visible:ring-ring/35 focus-visible:outline-none active:scale-[0.98]"
             >
               <SecureImage
