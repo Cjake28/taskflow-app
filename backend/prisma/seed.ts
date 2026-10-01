@@ -304,11 +304,21 @@ function avatarImage([from, to]: [string, string]): Promise<Buffer> {
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
-async function removeExisting(c: Container, email: string): Promise<void> {
-  const user = await c.prisma.user.findUnique({ where: { email }, select: { id: true } });
-  if (!user) return;
+/** Matches by email OR username, so re-seeding works even after a demo user edited either. */
+async function removeExisting(
+  c: Container,
+  account: { email: string; username: string },
+): Promise<void> {
+  const users = await c.prisma.user.findMany({
+    where: { OR: [{ email: account.email }, { username: account.username }] },
+    select: { id: true },
+  });
+  for (const user of users) await removeUser(c, user.id);
+}
+
+async function removeUser(c: Container, userId: string): Promise<void> {
   const images = await c.prisma.image.findMany({
-    where: { ownerId: user.id },
+    where: { ownerId: userId },
     select: { storageKey: true, thumbKey: true },
   });
   await c.storage.delete(
@@ -316,7 +326,7 @@ async function removeExisting(c: Container, email: string): Promise<void> {
       image.thumbKey ? [image.storageKey, image.thumbKey] : [image.storageKey],
     ),
   );
-  await c.prisma.user.delete({ where: { id: user.id } });
+  await c.prisma.user.delete({ where: { id: userId } });
 }
 
 async function seedUser(
@@ -331,7 +341,7 @@ async function seedUser(
   tasks: SeedTask[],
   avatarColours: [string, string] | null,
 ): Promise<void> {
-  await removeExisting(c, account.email);
+  await removeExisting(c, account);
   const now = new Date();
   const user = await c.prisma.user.create({
     data: {
