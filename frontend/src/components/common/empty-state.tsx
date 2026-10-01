@@ -18,7 +18,7 @@ export interface EmptyStateProps {
   bare?: boolean;
   className?: string;
   /** Heading level for the title (default h2). */
-  headingLevel?: 'h2' | 'h3';
+  headingLevel?: 'h1' | 'h2' | 'h3';
 }
 
 export function EmptyState({

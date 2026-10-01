@@ -37,6 +37,8 @@ export const queryKeys = {
     feeds: () => ['notifications', 'feed'] as const,
     unreadCount: () => ['notifications', 'unread-count'] as const,
     preferences: () => ['notifications', 'preferences'] as const,
+    /** Result of an email's one-time unsubscribe link (public page). */
+    unsubscribe: (token: string) => ['notifications', 'unsubscribe', token] as const,
   },
 };
 
